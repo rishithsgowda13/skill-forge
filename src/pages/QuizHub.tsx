@@ -65,41 +65,41 @@ const QuizHub: React.FC = () => {
               MISSION_ACCESS_PORTAL
             </motion.p>
 
-            {/* WHITE MINI CARD */}
+            {/* Access Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="bg-white border border-[#e2e8f0] rounded-[32px] p-12 w-full shadow-[0_30px_60px_rgba(0,0,0,0.06)] relative overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="bg-white border border-[#e2e8f0] rounded-[48px] p-16 w-full shadow-[0_40px_100px_rgba(0,0,0,0.06)] relative overflow-hidden"
             >
                {/* Accent decoration */}
-               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#f43f5e]" />
+               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#2563eb] via-[#8b5cf6] to-[#f59e0b]" />
 
-              <div className="flex flex-col items-center gap-10">
+              <div className="flex flex-col items-center gap-14">
                 <div className="text-center group">
-                  <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all transform duration-300 text-indigo-500">
-                     <span className="text-xl font-bold">#</span>
+                  <div className="w-20 h-20 bg-[#f8fafc] border border-[#e2e8f0] rounded-[24px] flex items-center justify-center mb-8 mx-auto group-hover:scale-110 group-hover:bg-[#2563eb] group-hover:text-white group-hover:border-[#2563eb] transition-all transform duration-500 text-[#2563eb] shadow-sm">
+                     <span className="text-3xl font-black font-display">#</span>
                   </div>
-                  <p className="font-display text-xs tracking-[0.6em] text-[#0f172a] font-extrabold uppercase mb-2">
-                    ENCRYPTION KEY
+                  <p className="font-display text-base tracking-[0.6em] text-[#0f172a] font-black uppercase mb-3">
+                    AUTHORIZATION KEY
                   </p>
-                  <p className="text-[10px] tracking-[0.1em] text-[#94a3b8] font-medium">ENTER AUTHORIZED ACCESS CODE</p>
+                  <p className="text-[11px] tracking-[0.1em] text-[#94a3b8] font-bold uppercase">SECURED TERMINAL ACCESS REQUIRED</p>
                 </div>
 
-                <form onSubmit={handleStartQuiz} className="w-full flex flex-col items-center gap-10">
+                <form onSubmit={handleStartQuiz} className="w-full flex flex-col items-center gap-12">
                   <input
                     type="text"
                     autoFocus
                     placeholder="KEY-XXXX-XXXX"
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                    className="w-full bg-[#f8fafc] border border-[#e2e8f0] px-8 py-6 text-2xl text-center text-[#0f172a] font-display font-extrabold tracking-[0.4em] rounded-2xl outline-none focus:border-[#6366f1]/40 focus:bg-white focus:shadow-[0_15px_30px_rgba(99,102,241,0.06)] transition-all placeholder:text-[#cbd5e1] placeholder:text-sm placeholder:tracking-[0.1em] placeholder:font-normal"
+                    className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] px-10 py-8 text-4xl text-center text-[#0f172a] font-display font-black tracking-[0.3em] rounded-[24px] outline-none focus:border-[#2563eb]/40 focus:bg-white focus:shadow-[0_20px_50px_rgba(37,99,235,0.08)] transition-all duration-500 placeholder:text-[#cbd5e1] placeholder:text-base placeholder:tracking-[0.2em] placeholder:font-bold"
                   />
                   
                   <button
                     type="submit"
                     disabled={isValidating}
-                    className="w-full py-6 bg-[#0f172a] text-white font-display text-sm tracking-[0.3em] font-extrabold uppercase rounded-2xl hover:bg-[#1e293b] hover:shadow-[0_15px_30px_rgba(15,23,42,0.15)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full py-8 bg-[#0f172a] text-white font-display text-lg tracking-[0.3em] font-black uppercase rounded-[24px] hover:bg-[#1e293b] hover:shadow-[0_30px_60px_rgba(15,23,42,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 cursor-pointer disabled:opacity-40"
                   >
                     {isValidating ? 'SYNCHRONIZING...' : 'AUTHORIZE ACCESS'}
                   </button>
