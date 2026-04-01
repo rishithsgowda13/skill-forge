@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockLogin, supabase } from '../supabase';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ivcLogo from '../assets/ivc_logo.jpg';
-import bgImage from '../assets/futuristic_bg.png';
 
 const LoginPage: React.FC = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +15,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     
-    if (!email || !password || (isSignUp && !name)) {
+    if (!email || !password) {
       setError('ALL_FIELDS_REQUIRED');
       return;
     }
@@ -26,28 +23,16 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error: sbErr } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name, role: 'user' }
-          }
-        });
-        if (sbErr) throw sbErr;
-        setError('CHECK_YOUR_EMAIL_FOR_CONFIRMATION');
-      } else {
-        const { user, error: mockErr } = await mockLogin(email, password);
-        if (!mockErr && user) {
-          localStorage.setItem('ivc_user', JSON.stringify(user));
-          navigate(user.role === 'admin' ? '/admin' : '/home');
-          return;
-        }
-
-        const { error: sbErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (sbErr) throw sbErr;
-        navigate('/home');
+      const { user, error: mockErr } = await mockLogin(email, password);
+      if (!mockErr && user) {
+        localStorage.setItem('ivc_user', JSON.stringify(user));
+        navigate(user.role === 'admin' ? '/admin' : '/home');
+        return;
       }
+
+      const { error: sbErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (sbErr) throw sbErr;
+      navigate('/home');
     } catch (err: any) {
       setError(err.message || 'AUTHENTICATION_FAILED');
     } finally {
@@ -70,149 +55,125 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-y-auto py-20"
-         style={{ background: 'linear-gradient(160deg, #020609 0%, #081a2d 40%, #030810 70%, #020609 100%)' }}>
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#f8fafc] font-body">
       
-      {/* Dynamic Background Effects */}
-      <div className="fixed inset-0 opacity-10 pointer-events-none"
-           style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-      
-      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-cyan-glow/5 blur-[150px] rounded-full pointer-events-none animate-pulse" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-glow/5 blur-[150px] rounded-full pointer-events-none animate-pulse" style={{ animationDelay: '2s' }} />
+      {/* Subtle Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.4] pointer-events-none"
+           style={{ 
+             backgroundImage: `radial-gradient(#e2e8f0 1px, transparent 1px)`, 
+             backgroundSize: '24px 24px' 
+           }} />
+
+      {/* Soft Accent Blobs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#3b82f6]/[0.03] blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#10b981]/[0.03] blur-[140px] rounded-full pointer-events-none" />
 
       {/* Main Container */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative z-10 w-full max-w-4xl px-4"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-lg px-6 py-12"
       >
-        {/* The Card - Redefined vertical flow with explicit gaps */}
-        <div className="rounded-[3.5rem] p-12 md:p-20 border border-white/10 backdrop-blur-[40px] flex flex-col items-center gap-14"
-             style={{ 
-               background: 'rgba(5, 15, 25, 0.85)', 
-               boxShadow: '0 50px 100px -20px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)' 
-             }}>
+        {/* WHITE PREMIUM CARD */}
+        <div className="bg-white border border-[#e2e8f0] rounded-[24px] p-10 md:p-14 shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex flex-col items-center">
           
           {/* Logo Section */}
-          <div className="flex flex-col items-center w-full">
-            <div className="relative mb-8 group">
-                <div className="absolute inset-0 bg-cyan-glow/15 blur-3xl rounded-full scale-110 group-hover:bg-cyan-glow/20 transition-all duration-700" />
-                <img
-                  src={ivcLogo}
-                  alt="IVC Logo"
-                  className="w-40 h-40 object-contain relative z-10 mix-blend-lighten"
-                />
-            </div>
-            <h1 className="font-display text-5xl md:text-6xl font-black tracking-[0.3em] glow-text text-center uppercase leading-tight mb-4">
-                IVC_DRIVE
-            </h1>
-            <div className="flex items-center gap-8 opacity-40">
-              <span className="font-display text-xs tracking-[0.4em] font-black uppercase">IDEATE</span>
-              <div className="w-1.5 h-1.5 bg-cyan-glow rounded-full" />
-              <span className="font-display text-xs tracking-[0.4em] font-black uppercase">VISUALIZE</span>
-              <div className="w-1.5 h-1.5 bg-cyan-glow rounded-full" />
-              <span className="font-display text-xs tracking-[0.4em] font-black uppercase">CREATE</span>
-            </div>
+          <div className="relative mb-10 group">
+              <div className="absolute inset-0 bg-[#3b82f6]/5 blur-[40px] rounded-full transition-all group-hover:bg-[#3b82f6]/10" />
+              <img
+                src={ivcLogo}
+                alt="IVC Logo"
+                className="w-32 h-32 object-contain relative z-10 grayscale hover:grayscale-0 transition-all duration-500"
+                style={{ 
+                  borderRadius: '24px',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+                }}
+              />
           </div>
 
-          {/* Centered Auth Form */}
-          <form onSubmit={handleAuth} className="w-full max-w-xl flex flex-col items-center gap-12">
-            <div className="w-full space-y-12">
-              <AnimatePresence mode="wait">
-                {isSignUp && (
-                  <motion.div
-                    key="name-field"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex flex-col items-center"
-                  >
-                    <label className="text-[10px] tracking-[0.8em] text-cyan-glow/50 uppercase font-black mb-4">OPERATOR_IDENTITY</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-white/[0.03] border-b-2 border-white/5 px-4 py-4 text-3xl text-center text-white font-display tracking-[0.2em] outline-none focus:border-cyan-glow/60 transition-all placeholder:text-white/5"
-                      placeholder="NAME_REQUIRED"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-col items-center">
-                <label className="text-[10px] tracking-[0.8em] text-cyan-glow/50 uppercase font-black mb-4">COMM_CHANNEL_ID</label>
-                <input
-                  type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border-b-2 border-white/5 px-4 py-4 text-3xl text-center text-white font-display tracking-[0.2em] outline-none focus:border-cyan-glow/60 transition-all placeholder:text-white/5"
-                  placeholder="EMAIL_OR_ACCESS_ID"
-                />
+          {/* BRAND HEADING */}
+          <div className="w-full flex flex-col items-center gap-3 mb-10 text-center">
+              <h1 className="font-display text-xl md:text-2xl font-extrabold tracking-tight text-[#0f172a] uppercase">
+                  IVC HUB
+              </h1>
+              <div className="flex items-center gap-4">
+                  <div className="h-[2px] w-12 bg-gradient-to-l from-[#3b82f6] to-transparent rounded-full" />
+                  <span className="font-display text-[10px] tracking-[0.4em] text-[#64748b] font-bold uppercase">SECURE PORTAL</span>
+                  <div className="h-[2px] w-12 bg-gradient-to-r from-[#3b82f6] to-transparent rounded-full" />
               </div>
+          </div>
 
-              <div className="flex flex-col items-center">
-                <label className="text-[10px] tracking-[0.8em] text-cyan-glow/50 uppercase font-black mb-4">ENCRYPTION_KEY</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.03] border-b-2 border-white/5 px-4 py-4 text-3xl text-center text-white font-display tracking-[0.2em] outline-none focus:border-cyan-glow/60 transition-all placeholder:text-white/5"
-                  placeholder="PASSWORD_ENCRYPT"
-                />
-              </div>
+          {/* FORM Section */}
+          <form onSubmit={handleAuth} className="w-full flex flex-col gap-6">
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] tracking-[0.3em] text-[#64748b] uppercase font-bold pl-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]"></span>
+                Identity
+              </label>
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#f8fafc] border border-[#e2e8f0] px-6 py-4 text-sm text-[#0f172a] font-medium tracking-wide rounded-xl outline-none focus:border-[#3b82f6]/40 focus:bg-white focus:shadow-[0_0_20px_rgba(59,130,246,0.05)] transition-all placeholder:text-[#94a3b8]"
+                placeholder="Email or Username"
+              />
             </div>
 
-            {/* Huge Button with proper height and padding */}
-            <div className="w-full pt-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] tracking-[0.3em] text-[#64748b] uppercase font-bold pl-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+                Encryption
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#f8fafc] border border-[#e2e8f0] px-6 py-4 text-sm text-[#0f172a] font-medium tracking-wide rounded-xl outline-none focus:border-[#10b981]/40 focus:bg-white focus:shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all placeholder:text-[#94a3b8]"
+                placeholder="Secret Key"
+              />
+            </div>
+
+            {error && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-[#ef4444] font-display text-[11px] tracking-[0.1em] uppercase font-bold text-center py-2 bg-red-50 rounded-lg">
+                      ⚠ Access Denied: {error}
+                  </motion.p>
+            )}
+
+            {/* ACTION SECTION */}
+            <div className="grid grid-cols-1 gap-4 mt-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full min-h-[5.5rem] bg-cyan-glow text-black font-display text-4xl tracking-[0.6em] font-black uppercase rounded-3xl hover:shadow-[0_0_100px_rgba(0,247,255,0.4)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center p-6"
+                className="w-full py-5 bg-[#0f172a] text-white font-display text-sm tracking-[0.2em] font-extrabold uppercase rounded-xl hover:bg-[#1e293b] hover:shadow-[0_10px_20px_rgba(15,23,42,0.1)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
               >
-                {loading ? 'SYNCING...' : (isSignUp ? 'REGISTER' : 'LOGIN')}
+                {loading ? 'Processing...' : 'Authorize Session'}
+              </button>
+
+              <button
+                onClick={handleGoogleLogin}
+                type="button"
+                disabled={loading}
+                className="w-full py-5 bg-white border border-[#e2e8f0] rounded-xl flex items-center justify-center gap-4 hover:bg-[#f8fafc] active:scale-[0.98] transition-all cursor-pointer group"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-[#64748b] group-hover:text-[#0f172a] font-display text-xs tracking-[0.1em] font-bold uppercase transition-colors">Sign in with Google</span>
               </button>
             </div>
           </form>
 
-          {/* Social Divider - Proper Layout */}
-          <div className="w-full flex flex-col items-center gap-10">
-            <div className="flex items-center gap-8 w-full max-w-xl opacity-20">
-              <div className="h-px bg-white grow" />
-              <span className="text-[10px] tracking-[0.6em] text-white font-black uppercase shrink-0">OAUTH_GATEWAY</span>
-              <div className="h-px bg-white grow" />
-            </div>
-
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full max-w-xl min-h-[4.5rem] bg-transparent border-2 border-white/10 rounded-2xl flex items-center justify-center gap-6 hover:bg-white/[0.03] hover:border-cyan-glow/30 active:scale-[0.98] transition-all cursor-pointer group/google p-4"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="" className="w-8 h-8 group-hover:scale-110 transition-all grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100" />
-              <span className="text-white/40 group-hover:text-white font-display text-xl tracking-[0.4em] font-black uppercase">LINK_GOOGLE_ACCOUNT</span>
-            </button>
-          </div>
-
-          {/* Footer UI - Error and Selector */}
-          <div className="w-full flex flex-col items-center gap-8">
-            {error && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 font-display text-sm tracking-[0.3em] uppercase font-black text-center">
-                    ▸ {error}
-                </motion.p>
-            )}
-            
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-cyan-glow/40 hover:text-cyan-glow font-display text-xs tracking-[0.4em] font-black uppercase transition-all px-8 py-2"
-            >
-              {isSignUp ? 'EXISTING_MEMBER?_SIGN_IN' : 'NEW_MEMBER?_GET_IDENTIFIED'}
-            </button>
+          {/* Footer Text */}
+          <div className="mt-12 pt-8 border-t border-[#f1f5f9] w-full text-center">
+             <p className="text-[10px] tracking-[0.2em] text-[#94a3b8] uppercase font-medium">
+               Innovators & Visionaries Club
+             </p>
           </div>
         </div>
       </motion.div>
-
-      {/* Scanline */}
-      <div className="scanline-overlay pointer-events-none opacity-40" />
     </div>
   );
 };
