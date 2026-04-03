@@ -146,12 +146,20 @@ export default function SubmitReportPage() {
                     setShowAiModal(true);
                     setAiResult(null);
                     
-                    // Simulate high-fidelity AI analysis chain
+                    // Simulate high-fidelity AI analysis chain with deterministic logic
+                    const totalLength = (overview + applications + thoughts + improvements).length;
+                    const wordCount = totalLength / 6;
+                    
                     setTimeout(() => {
+                      // Deterministic mock calculation based on input length and entropy
+                      const aiProb = Math.max(8, Math.min(22, (wordCount % 15) + 8));
+                      const auth = Math.min(99.9, 94 + (totalLength % 5) + (totalLength % 0.9));
+                      
                       setAiResult({
-                        ai_generated: "14%",
+                        ai_generated: `${aiProb}%`,
                         plagiarism: "2%",
-                        quality: "92/100",
+                        quality: `${Math.floor(85 + (totalLength % 10))}/100`,
+                        authenticity: `${auth.toFixed(1)}%`,
                         status: "LEGITIMATE"
                       });
                       setAiChecking(false);
@@ -226,7 +234,7 @@ export default function SubmitReportPage() {
                      </div>
                      <div className="p-4 bg-[#F8FAFC] rounded-3xl border border-[#F1F5F9]">
                         <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Authenticity</p>
-                        <p className="text-2xl font-black text-green-500">{aiChecking ? "--" : "98.4%"}</p>
+                        <p className="text-2xl font-black text-green-500">{aiChecking ? "--" : aiResult?.authenticity}</p>
                      </div>
                   </div>
 
