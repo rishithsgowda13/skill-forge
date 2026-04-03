@@ -39,7 +39,7 @@ export default function AdminUsersPage() {
     <div className="min-h-screen bg-page-bg flex font-sans">
       <Sidebar />
 
-      <main className="flex-1 ml-[240px] p-10 space-y-10">
+      <main className="flex-1 ml-0 lg:ml-[280px] p-10 space-y-10">
         <div className="flex items-center justify-between">
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Identity Registry</h1>
