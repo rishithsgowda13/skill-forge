@@ -4,45 +4,41 @@
   --font-heading: "Outfit", "Inter", sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
 
-  /* Color Palette */
-  --color-page-bg: #F0F4F8;
-  --color-sidebar-bg: #FFFFFF;
+  /* Color Palette - Midnight Cyber */
+  --color-page-bg: #F8FAFC;
+  --color-sidebar-bg: #0F172A;
   --color-card-bg: #FFFFFF;
-  --color-card-border: #E8EDF2;
+  --color-card-border: #E2E8F0;
   --color-primary-blue: #2563EB;
   --color-success-green: #10B981;
   --color-warning-amber: #F59E0B;
   --color-accent-indigo: #6366F1;
-  --color-deep-indigo: #3B3FD8;
+  --color-deep-indigo: #1E1B4B;
   --color-text-primary: #0F172A;
   --color-text-secondary: #64748B;
   --color-text-meta: #94A3B8;
-  --color-nav-hover: #F1F5F9;
-  --color-nav-active-bg: #EFF6FF;
+  --color-nav-hover: #1E293B;
 
   /* Radius */
-  --radius-card: 20px;
-  --radius-inner: 12px;
-  --radius-pill: 10px;
+  --radius-card: 32px;
+  --radius-inner: 20px;
+  --radius-pill: 12px;
 
   /* Shadow */
-  --shadow-subtle: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-premium: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+  --shadow-glow-blue: 0 0 20px rgba(37, 99, 235, 0.2);
 }
 
 @layer base {
-  *, ::after, ::before, ::backdrop, ::file-selector-button {
-    border-color: var(--color-card-border, #E8EDF2);
+  *, ::after, ::before {
+    box-sizing: border-box;
+    border-color: var(--color-card-border);
   }
 
   html {
     background-color: var(--color-page-bg);
-    font-size: 13px; /* Web default for high-fidelity feel */
-  }
-
-  @media (max-width: 640px) {
-    html {
-      font-size: 8px; /* Scales down the entire UI by ~40% for mobile precision */
-    }
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -50,59 +46,69 @@
     color: var(--color-text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     min-height: 100vh;
     margin: 0;
-    display: flex;
-    flex-direction: column;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
   }
 }
 
-/* Typography Utilities */
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
+/* Global Utilities */
 .text-meta {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-text-meta);
 }
 
-.text-metric {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--color-text-primary);
-}
-
-.text-section-header {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-/* Component Utilities */
 .dashboard-card {
-  background: var(--color-card-bg);
+  background: white;
   border: 1px solid var(--color-card-border);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-subtle);
-  padding: 24px;
+  box-shadow: var(--shadow-premium);
+  padding: 32px;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.nav-item-active {
-  background: var(--color-nav-active-bg);
-  color: var(--color-primary-blue);
-  border-radius: var(--radius-pill);
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary-blue);
 }
 
-/* Team Utilization Style Bar */
-.utilization-bar-bg {
-  height: 6px;
-  background: #F1F5F9;
-  border-radius: 99px;
-  width: 100%;
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.utilization-bar-fill {
-  height: 6px;
-  background: var(--color-deep-indigo);
-  border-radius: 99px;
+.cyber-button {
+  @apply bg-primary-blue text-white font-black uppercase tracking-[0.2em] transition-all active:scale-[0.97] disabled:opacity-50;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.cyber-button:hover {
+  @apply bg-blue-700;
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
 }
