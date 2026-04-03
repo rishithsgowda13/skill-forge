@@ -95,7 +95,7 @@ export default function DashboardPage() {
     return (
       <div className="flex h-screen bg-[#F0F2F5] text-[#0F172A] font-sans overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-10 md:p-14 space-y-12 ml-0 lg:ml-[280px]">
+        <main className="flex-1 overflow-y-auto p-10 md:p-14 space-y-12 ml-0 lg:ml-[240px]">
            <button 
              onClick={() => setSelectedSession(null)}
              className="flex items-center gap-3 px-6 py-3 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#64748B] hover:text-[#0F172A] hover:bg-gray-50 transition-all group"
@@ -236,7 +236,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col p-10 md:p-14 ml-0 lg:ml-[280px]">
+      <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col p-10 md:p-14 ml-0 lg:ml-[240px]">
         <header className="flex justify-between items-start mb-12 w-full">
           <div className="space-y-1">
             <h2 className="text-5xl font-black text-[#0F172A] tracking-tighter uppercase leading-none">
