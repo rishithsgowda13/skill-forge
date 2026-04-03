@@ -30,12 +30,14 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    /*
     async function checkSession() {
       const { data: { user } } = await supabase.auth.getUser();
       const mockSession = document.cookie.includes("mock_session=");
       if (user || mockSession) router.push("/dashboard");
     }
     checkSession();
+    */
   }, []);
 
   const handleAuth = async (e) => {
