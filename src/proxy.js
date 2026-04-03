@@ -67,9 +67,12 @@ export async function middleware(request) {
   }
 
   // Redirect to dashboard if already authenticated and trying to access login/root
+  // Temporarily disabled to allow viewing the login page directly
+  /*
   if (isAuthenticated && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
+  */
 
   // Admin access control
   if (isAdminRoute && !isMockAdmin) {
