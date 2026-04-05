@@ -127,27 +127,24 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-page-bg flex font-sans">
-      <Sidebar />
-
-      <main className="flex-1 ml-[240px] p-10 space-y-10">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-3xl font-black text-[#0F172A] tracking-tighter">Dashboard Overview</h1>
-            <p className="text-meta">REAL-TIME INFRASTRUCTURE MONITORING</p>
-          </motion.div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-pill border border-card-border shadow-sm">
-              <div className="w-2 h-2 bg-success-green rounded-full animate-pulse" />
-              <span className="text-xs font-semibold text-[#0F172A]">SYSTEMS ONLINE</span>
-            </div>
-            <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-200">BK</div>
+    <div className="flex flex-col p-8 md:p-14 space-y-10">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-3xl font-black text-[#0F172A] tracking-tighter">Dashboard Overview</h1>
+          <p className="text-meta">REAL-TIME INFRASTRUCTURE MONITORING</p>
+        </motion.div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-pill border border-card-border shadow-sm">
+            <div className="w-2 h-2 bg-success-green rounded-full animate-pulse" />
+            <span className="text-xs font-semibold text-[#0F172A]">SYSTEMS ONLINE</span>
           </div>
+          <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-200">BK</div>
         </div>
+      </div>
 
-        {/* 6-Column Stats Grid */}
-        <div className="grid grid-cols-6 gap-6">
+        {/* 6-Column Stats Grid - Responsive scaling */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
           {statsDisplay.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -303,7 +300,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    );
 }

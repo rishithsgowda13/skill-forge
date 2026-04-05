@@ -45,75 +45,73 @@ export default function ProtocolAccessPage() {
   };
 
   return (
-    <div className="h-screen w-full bg-[#f8fafc] flex font-sans text-[#0f172a] overflow-hidden">
-      <Sidebar />
+    <div className="min-h-screen flex items-center justify-center p-6 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(37,99,235,0.02)_0%,_transparent_50%)] pointer-events-none" />
       
-      <main className="flex-1 ml-0 lg:ml-[240px] min-h-screen flex items-center justify-center p-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(37,99,235,0.02)_0%,_transparent_50%)] pointer-events-none" />
-        
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-[380px] bg-white rounded-[48px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.06)] border border-[#f1f5f9] p-16 md:p-14 text-center space-y-14"
-        >
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Lock className="text-primary-blue w-8 h-8" strokeWidth={2.5} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.02, transition: { duration: 0.4 } }}
+        className="w-full max-w-[480px] bg-white rounded-[56px] shadow-[0_60px_100px_-20px_rgba(37,99,235,0.12)] border border-[#f1f5f9] p-20 md:p-16 text-center space-y-16 relative overflow-hidden group"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-100/50 transition-colors" />
+        <div className="space-y-6">
+          <div className="w-20 h-20 bg-blue-50/80 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Lock className="text-primary-blue w-10 h-10" strokeWidth={2.5} />
+          </div>
+          <h1 className="text-5xl font-black tracking-tighter text-[#0f172a] leading-none">Protocol <span className="text-primary-blue">Lockdown</span></h1>
+          <p className="text-[12px] font-black text-[#94a3b8] uppercase tracking-[0.5em]">Initialize High-Fidelity Session Access</p>
+        </div>
+
+        <form onSubmit={handleAccess} className="space-y-8">
+          <div className="space-y-3">
+            <label className="block text-[11px] font-black text-[#94a3b8] uppercase tracking-widest text-left ml-8 italic">Authenticated Node Access Key</label>
+            <div className="relative group/input">
+              <div className="absolute left-8 top-1/2 -translate-y-1/2 text-[#cbd5e1] group-focus-within/input:text-primary-blue transition-colors">
+                 <Fingerprint size={24} />
+              </div>
+              <input
+                type="text"
+                required
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="EX: NEXUS-AURORA"
+                className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[32px] py-8 pl-20 pr-10 text-base font-black text-[#0f172a] tracking-[0.2em] focus:outline-none focus:border-primary-blue focus:ring-[12px] focus:ring-blue-100/40 transition-all placeholder:text-[#cbd5e1] placeholder:font-bold"
+              />
             </div>
-            <h1 className="text-4xl font-black tracking-tighter text-[#0f172a]">Protocol <span className="text-primary-blue">Lockdown</span></h1>
-            <p className="text-[11px] font-black text-[#94a3b8] uppercase tracking-[0.4em]">Initialize secure session access</p>
           </div>
 
-          <form onSubmit={handleAccess} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-[10px] font-black text-[#94a3b8] uppercase tracking-widest text-left ml-6">Secure Access Key</label>
-              <div className="relative group">
-                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-[#cbd5e1] group-focus-within:text-primary-blue transition-colors">
-                   <Fingerprint size={20} />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="EX: NEXUS-XXXX"
-                  className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-6 pl-16 pr-8 text-sm font-bold text-[#0f172a] tracking-widest focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-                />
-              </div>
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#0f172a] text-white py-6 rounded-[32px] font-black text-[13px] tracking-[0.5em] uppercase shadow-[0_20px_40px_-10px_rgba(15,23,42,0.3)] hover:bg-primary-blue hover:shadow-primary-blue/30 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-5 group/btn"
+          >
+            {loading ? (
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <span className="group-hover/btn:tracking-[0.6em] transition-all">Establish Link</span>
+                <Zap size={22} className="text-primary-blue group-hover/btn:text-white group-hover/btn:scale-125 transition-all" />
+              </>
+            )}
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#0f172a] text-white py-4 rounded-[28px] font-black text-xs tracking-[0.4em] uppercase shadow-2xl hover:bg-primary-blue transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Decrypt Access</span>
-                  <Zap size={18} className="text-primary-blue group-hover:text-white transition-colors" />
-                </>
-              )}
-            </button>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-center gap-3"
+              >
+                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                 <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">{error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-center gap-3"
-                >
-                   <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                   <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">{error}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </form>
-
-        </motion.div>
-      </main>
+      </motion.div>
     </div>
   );
 }

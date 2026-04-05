@@ -3,54 +3,53 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Shield, 
-  BarChart3, 
-  BookText, 
-  Users2 as UsersIcon, 
-  FileBox, 
   LogOut, 
-  Plus, 
-  Activity, 
   FileText, 
   LayoutDashboard,
-  Search,
-  Bell,
-  ChevronDown,
-  ArrowRight,
-  Trophy,
-  History,
   Zap,
-  Lock,
-  Medal,
-  Dna,
-  X,
-  Clock,
-  Target,
-  BarChart,
-  ArrowLeft,
-  Settings,
   ShieldCheck,
   Menu,
-  Users
+  X,
+  Users,
+  Settings,
+  Activity,
+  Trophy,
+  History
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { useSidebar } from "@/context/SidebarContext";
+import Link from "next/link";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { isExpanded, setIsExpanded } = useSidebar();
   const [isOpen, setIsOpen] = useState(false);
   const [role, setRole] = useState("user");
+  const [userName, setUserName] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(c => c.trim().startsWith('mock_session='));
-    if (sessionCookie) {
-      setRole(sessionCookie.split('=')[1]);
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+        if (profile) setUserName(profile.full_name);
+      }
+      
+      const cookies = document.cookie.split(';');
+      const sessionCookie = cookies.find(c => c.trim().startsWith('mock_session='));
+      if (sessionCookie) {
+        setRole(sessionCookie.split('=')[1]);
+      }
+      setIsMounted(true);
     }
+    init();
   }, []);
+
+  if (!isMounted) return null;
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -60,20 +59,20 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "evaluator";
 
   const adminItems = [
-    { href: "/quiz/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/quiz/admin", label: "Control Center", icon: LayoutDashboard },
     { href: "/quiz/admin/quizzes", label: "Protocols", icon: FileText },
-    { href: "/quiz/admin/users", label: "Users", icon: Users },
-    { href: "/quiz/admin/security", label: "Security", icon: ShieldCheck },
-    { href: "/dashboard/reports", label: "Reports", icon: FileText },
+    { href: "/quiz/admin/users", label: "Node Registry", icon: Users },
+    { href: "/dashboard/reports", label: "Reports", icon: Activity },
+    { href: "/quiz/admin/security", label: "Security Audit", icon: ShieldCheck },
   ];
 
   const candidateItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/quiz/access", label: "Protocols", icon: FileText },
-    { href: "/dashboard/reports", label: "Reports", icon: FileText },
+    { href: "/quiz/access", label: "Protocol", icon: Zap },
+    { href: "/dashboard/reports", label: "Reports", icon: Activity },
   ];
 
   const navItems = isAdmin ? adminItems : candidateItems;
@@ -83,9 +82,9 @@ export default function Sidebar() {
       {/* Mobile Toggle Button */}
       <button 
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-[60] lg:hidden p-2.5 bg-white rounded-xl shadow-xl shadow-blue-200 text-[#0F172A] border border-[#f1f5f9] active:scale-90 transition-transform"
+        className="fixed top-6 left-6 z-[70] lg:hidden p-4 bg-white rounded-2xl shadow-2xl shadow-blue-200 text-[#0F172A] border border-[#f1f5f9] active:scale-95 transition-all"
       >
-        {isOpen ? <X size={18} /> : <Menu size={18} />}
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       {/* Backdrop for mobile */}
@@ -96,70 +95,149 @@ export default function Sidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={toggleSidebar}
-            className="fixed inset-0 bg-[#0F172A]/20 backdrop-blur-sm z-[55] lg:hidden"
+            className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-md z-[60] lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-white border-r border-[#E8EDF2] flex flex-col z-[58] transition-transform duration-500 ease-in-out lg:translate-x-0 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        {/* Logo */}
-        <div className="px-10 h-24 flex items-center gap-4">
-          <div className="w-10 h-10 bg-[#2563EB] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-            <ShieldCheck className="w-6 h-6 text-white" />
-          </div>
-          <span className="font-black text-2xl text-[#0F172A] tracking-tighter">Skill Forge</span>
-        </div>
-
-        {/* User Role Indicator */}
-        <div className="px-8 mb-6">
-           <div className={`p-4 rounded-[24px] border ${isAdmin ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-100"} flex items-center gap-3`}>
-              <div className={`w-2 h-2 rounded-full ${isAdmin ? "bg-primary-blue animate-pulse" : "bg-slate-400"}`} />
-              <span className={`text-[10px] font-black uppercase tracking-widest ${isAdmin ? "text-primary-blue" : "text-slate-500"}`}>
-                {isAdmin ? "Superuser Access" : "Candidate Station"}
-              </span>
+      <motion.aside 
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        initial={false}
+        animate={{ 
+          width: isExpanded ? 240 : 72,
+          translateX: (isOpen || !isExpanded) ? 0 : 0 
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+        className={`fixed left-0 top-0 bottom-0 bg-white border-r border-[#F1F5F9] flex flex-col z-[65] lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        } overflow-hidden`}
+      >
+        {/* Logo Section */}
+        <div className="h-24 flex items-center px-4 relative z-10">
+           <div className="flex items-center gap-3.5 min-w-[200px]">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-100 flex-shrink-0"
+              >
+                <ShieldCheck className="w-6 h-6 text-white" />
+              </motion.div>
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <span className="font-[900] text-2xl text-[#0F172A] tracking-tight block leading-none">Skill Forge</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
            </div>
         </div>
 
-        {/* Nav Items */}
-        <nav className="flex-1 px-6 py-4 space-y-2">
+        <div className="px-4 mb-6 relative z-10 h-10">
+          <AnimatePresence mode="wait">
+            {isExpanded ? (
+              <motion.div 
+                key="expanded-chip"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-[#F8FAFC] rounded-full px-5 py-3 flex items-center gap-2.5 border border-[#F1F5F9] transition-all w-fit whitespace-nowrap"
+              >
+                  <div className="w-1 h-1 rounded-full bg-[#94A3B8]" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#94A3B8] leading-none">
+                    {isAdmin ? "Evaluator Node" : "Candidate Station"}
+                  </span>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="collapsed-chip"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex justify-center w-10"
+              >
+                <div className="w-2.5 h-2.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-2 space-y-1 relative z-10 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.label !== "Dashboard" && pathname.startsWith(item.href));
+            const isActive = pathname ? (pathname === item.href || (item.label !== "Dashboard" && item.label !== "Control Center" && pathname.startsWith(item.href))) : false;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between px-6 py-4 transition-all text-sm font-black uppercase tracking-widest ${
+                className={`flex items-center transition-all rounded-full mx-1.5 group relative overflow-hidden h-[46px] ${
                   isActive 
-                    ? "bg-[#2563EB] text-white rounded-[22px] shadow-2xl shadow-blue-200" 
-                    : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A] rounded-[22px]"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-100" 
+                    : "text-[#94A3B8] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
                 }`}
+                style={{ width: isExpanded ? '228px' : '60px' }}
               >
-                <div className="flex items-center gap-5">
-                  <item.icon size={20} className={isActive ? "text-white" : "text-[#94A3B8]"} />
-                  <span className="flex-1">{item.label}</span>
+                <div className={`flex items-center gap-5 px-0 w-full ${isExpanded ? "pl-5" : "justify-center"}`}>
+                  <item.icon size={18} className={`${isActive ? "text-white" : "text-[#94A3B8] group-hover:text-blue-600"} transition-all duration-300 flex-shrink-0`} />
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.span 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-[10px] font-extrabold uppercase tracking-[0.2em] whitespace-nowrap"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  
+                  {isActive && isExpanded && (
+                    <motion.div 
+                      layoutId="active-indicator" 
+                      className="ml-auto mr-5 w-1.2 h-1.2 bg-white rounded-full flex-shrink-0" 
+                    />
+                  )}
                 </div>
-                {isActive && (
-                   <motion.div layoutId="active" className="w-1.5 h-1.5 bg-white rounded-full" />
-                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Bottom Profile/Logout */}
-        <div className="p-8 border-t border-[#f1f5f9]">
+        {/* Footer/Logout */}
+        <div className="p-4 border-t border-[#F1F5F9] relative z-10 overflow-hidden mt-auto">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-6 py-5 text-xs font-black text-[#E11D48] hover:bg-rose-50 rounded-[22px] transition-all uppercase tracking-[0.2em] group"
+            className="w-full flex items-center px-2 py-3 rounded-full transition-all group min-w-[240px]"
           >
-             <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
-             <span>Terminate Sync</span>
+             <div className="w-10 h-10 bg-[#334155] rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0 shadow-lg relative group-hover:scale-110 transition-transform uppercase">
+                <span>{userName?.[0] || role?.[0] || "N"}</span>
+                <div className="absolute -right-0.5 -bottom-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm">
+                   <LogOut size={10} className="text-rose-500" />
+                </div>
+             </div>
+             
+             <AnimatePresence>
+               {isExpanded && (
+                 <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="ml-4 text-[9px] font-black text-rose-500 uppercase tracking-[0.2em] whitespace-nowrap"
+                 >
+                   Terminate Sync
+                 </motion.span>
+               )}
+             </AnimatePresence>
           </button>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

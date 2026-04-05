@@ -26,7 +26,9 @@ import {
   Clock,
   Target,
   BarChart,
-  ArrowLeft
+  ArrowLeft,
+  TrendingUp,
+  Check
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -38,33 +40,98 @@ export default function DashboardPage() {
   const supabase = createClient();
   const [role, setRole] = useState("user");
   const [submissions, setSubmissions] = useState([]);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
+  const [attendedQuizzes, setAttendedQuizzes] = useState([]);
+  const [selectedQuizId, setSelectedQuizId] = useState("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionLeaderboard, setSessionLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const cookies = document.cookie.split(';');
     const sessionCookie = cookies.find(c => c.trim().startsWith('mock_session='));
     if (sessionCookie) {
       setRole(sessionCookie.split('=')[1]);
     }
 
-    async function loadSubmissions() {
+    async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-
-      // Fetch all attended sessions for the candidate
-      const { data } = await supabase
+      
+      // Fetch user's submissions to get attended quizzes
+      const { data: userSubs } = await supabase
         .from("submissions")
-        .select("*, quizzes(title, total_questions)")
+        .select("*, quizzes(id, title, total_questions)")
         .order("submitted_at", { ascending: false });
         
-      setSubmissions(data || []);
+      setSubmissions(userSubs || []);
+      
+      // Extract unique quizzes
+      const unique = Array.from(new Map((userSubs || []).map(s => [s.quizzes?.id, s.quizzes])).values()).filter(q => q);
+      setAttendedQuizzes(unique);
+      
       setLoading(false);
+      fetchLeaderboard("all");
     }
-    loadSubmissions();
+
+    const fetchLeaderboard = async (quizId) => {
+      setLeaderboardLoading(true);
+      let query = supabase
+        .from("submissions")
+        .select("*, profiles!user_id(full_name, avatar_url)")
+        .order("total_score", { ascending: false })
+        .order("time_taken", { ascending: true })
+        .limit(5);
+
+      if (quizId !== "all") {
+        query = query.eq("quiz_id", quizId);
+      }
+
+      const { data: globalSubs } = await query;
+      setGlobalLeaderboard(globalSubs || []);
+      setLeaderboardLoading(false);
+    };
+
+    loadData();
+
+    // Subscribe to submission changes
+    const channel = supabase
+      .channel("global-leaderboard")
+      .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const handleQuizFilter = (quizId) => {
+    setSelectedQuizId(quizId);
+    async function update() {
+      setLeaderboardLoading(true);
+      let query = supabase
+        .from("submissions")
+        .select("*, profiles!user_id(full_name, avatar_url)")
+        .order("total_score", { ascending: false })
+        .order("time_taken", { ascending: true })
+        .limit(5);
+
+      if (quizId !== "all") {
+        query = query.eq("quiz_id", quizId);
+      }
+
+      const { data } = await query;
+      setGlobalLeaderboard(data || []);
+      setLeaderboardLoading(false);
+    }
+    update();
+  };
 
   const fetchSessionDetails = async (session) => {
     setDetailsLoading(true);
@@ -93,9 +160,7 @@ export default function DashboardPage() {
 
   if (selectedSession) {
     return (
-      <div className="flex h-screen bg-[#F0F2F5] text-[#0F172A] font-sans overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-10 md:p-14 space-y-12 ml-0 lg:ml-[240px]">
+      <div className="flex flex-col p-10 md:p-14 space-y-12">
            <button 
              onClick={() => setSelectedSession(null)}
              className="flex items-center gap-3 px-6 py-3 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#64748B] hover:text-[#0F172A] hover:bg-gray-50 transition-all group"
@@ -127,7 +192,7 @@ export default function DashboardPage() {
 
            {/* Stats Cards */}
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white p-10 rounded-[40px] border border-[#E2E8F0] shadow-sm space-y-6">
+              <div className="bg-white p-10 rounded-[12px] border border-[#E2E8F0] shadow-sm space-y-6">
                  <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#2563EB]">
                     <BarChart size={24} />
                  </div>
@@ -142,7 +207,7 @@ export default function DashboardPage() {
                  </div>
               </div>
 
-              <div className="bg-white p-10 rounded-[40px] border border-[#E2E8F0] shadow-sm space-y-6">
+              <div className="bg-white p-10 rounded-[12px] border border-[#E2E8F0] shadow-sm space-y-6">
                  <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500">
                     <BookText size={24} />
                  </div>
@@ -155,7 +220,7 @@ export default function DashboardPage() {
                  </div>
               </div>
 
-              <div className="bg-[#0F172A] p-10 rounded-[40px] shadow-2xl text-white space-y-6 overflow-hidden relative">
+              <div className="bg-[#0F172A] p-10 rounded-[12px] shadow-2xl text-white space-y-6 overflow-hidden relative">
                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
                     <Trophy size={24} className="text-amber-400" />
                  </div>
@@ -169,7 +234,7 @@ export default function DashboardPage() {
            </div>
 
            {/* Protocol Leaderboard */}
-           <div className="bg-white rounded-[40px] border border-[#E2E8F0] shadow-sm p-10 md:p-14">
+           <div className="bg-white rounded-[12px] border border-[#E2E8F0] shadow-sm p-10 md:p-14">
               <div className="flex items-center justify-between mb-12">
                  <div className="flex items-center gap-4">
                     <div className="p-3 bg-amber-50 rounded-2xl">
@@ -226,37 +291,34 @@ export default function DashboardPage() {
                  ))}
               </div>
            </div>
-        </main>
       </div>
     );
   }
 
+  if (!isMounted) return null;
+
   return (
-    <div className="flex h-screen bg-[#F0F2F5] text-[#0F172A] font-sans selection:bg-blue-100 overflow-hidden">
-      <Sidebar />
+    <div className="flex flex-col p-8 md:p-14 space-y-12">
+      <header className="flex justify-between items-start mb-12 w-full">
+        <div className="space-y-1">
+          <h2 className="text-5xl font-black text-[#0F172A] tracking-tighter uppercase leading-none">
+            CONTROL <span className="text-[#2563EB]">CENTER</span>
+          </h2>
+          <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.4em]">
+            Authorized Station Analysis Protocol
+          </p>
+        </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col p-10 md:p-14 ml-0 lg:ml-[240px]">
-        <header className="flex justify-between items-start mb-12 w-full">
-          <div className="space-y-1">
-            <h2 className="text-5xl font-black text-[#0F172A] tracking-tighter uppercase leading-none">
-              CONTROL <span className="text-[#2563EB]">CENTER</span>
-            </h2>
-            <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.4em]">
-              Authorized Station Analysis Protocol
-            </p>
-          </div>
-
-          {(role === "admin" || role === "evaluator") && (
-            <button 
-              onClick={() => router.push('/quiz')}
-              className="bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase flex items-center gap-4 shadow-[0_15px_40px_rgba(37,99,235,0.3)] hover:bg-[#1E40AF] transition-all active:scale-[0.98] group"
-            >
-              <Zap size={20} className="group-hover:translate-x-1.5 transition-transform" />
-              <span>Initialize Session</span>
-            </button>
-          )}
-        </header>
+        {(role === "admin" || role === "evaluator") && (
+          <button 
+            onClick={() => router.push('/quiz')}
+            className="bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase flex items-center gap-4 shadow-[0_15px_40px_rgba(37,99,235,0.3)] hover:bg-[#1E40AF] transition-all active:scale-[0.98] group"
+          >
+            <Zap size={20} className="group-hover:translate-x-1.5 transition-transform" />
+            <span>Initialize Session</span>
+          </button>
+        )}
+      </header>
 
         <section className="space-y-12">
           {/* Core Telemetry Grid - Primary Display */}
@@ -283,68 +345,123 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Attended Sessions - Logs Display */}
+          {/* Hall of Fame - Global Performance Index */}
           <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-[#F1F5F9] rounded-2xl">
-                   <History size={24} className="text-[#0F172A]" />
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                   <div className="p-3 bg-amber-50 rounded-2xl">
+                      <Trophy size={24} className="text-amber-500" />
+                   </div>
+                   <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight text-[#0F172A]">Hall of Fame</h3>
+                      <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest">Global Elite Node Benchmarks</p>
+                   </div>
                 </div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-[#0F172A]">Synchronized Sessions</h3>
-              </div>
-              <span className="bg-blue-50 text-[#2563EB] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
-                {submissions.length} Total Logs
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-               {loading ? (
-                 [1,2,3,4].map(i => <div key={i} className="h-64 bg-white rounded-[40px] border animate-pulse" />)
-               ) : submissions.length === 0 ? (
-                 <div className="col-span-full py-20 bg-white rounded-[48px] border border-dashed border-[#E2E8F0] flex flex-col items-center justify-center text-center">
-                    <BookText size={48} className="text-[#94A3B8] mb-6" />
-                    <p className="text-base font-black text-[#0F172A] uppercase tracking-widest mb-2">No Protocol Logs Found</p>
-                    <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.2em]">Initialize a session to synchronize data nodes.</p>
+                <div className="flex items-center gap-6">
+                   <div className="relative">
+                      <button 
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="bg-white border border-[#E2E8F0] rounded-2xl px-6 py-3 min-w-[220px] flex items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest text-[#0F172A] hover:border-[#2563EB] transition-all shadow-sm hover:shadow-md group"
+                      >
+                         <span className="truncate">{selectedQuizId === "all" ? "Global Protocols" : attendedQuizzes.find(q => q.id === selectedQuizId)?.title}</span>
+                         <ChevronDown size={14} className={`text-[#94A3B8] transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                      </button>
+
+                      <AnimatePresence>
+                         {isDropdownOpen && (
+                           <>
+                              <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsDropdownOpen(false)}
+                                className="fixed inset-0 z-[80]"
+                              />
+                              <motion.div 
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute right-0 top-full mt-3 w-72 bg-white border border-[#E2E8F0] rounded-[24px] shadow-2xl p-3 z-[90] overflow-hidden"
+                              >
+                                 <div className="max-h-[320px] overflow-y-auto custom-scrollbar space-y-1">
+                                    <button 
+                                      onClick={() => { handleQuizFilter("all"); setIsDropdownOpen(false); }}
+                                      className={`w-full text-left px-5 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-between transition-colors ${selectedQuizId === "all" ? "bg-blue-50 text-blue-600" : "hover:bg-slate-50 text-slate-500"}`}
+                                    >
+                                       <span>Global Protocols</span>
+                                       {selectedQuizId === "all" && <Check size={14} />}
+                                    </button>
+                                    {attendedQuizzes.map(q => (
+                                      <button 
+                                        key={q.id}
+                                        onClick={() => { handleQuizFilter(q.id); setIsDropdownOpen(false); }}
+                                        className={`w-full text-left px-5 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-between transition-colors ${selectedQuizId === q.id ? "bg-blue-50 text-blue-600" : "hover:bg-slate-50 text-slate-500"}`}
+                                      >
+                                         <span className="truncate pr-4">{q.title}</span>
+                                         {selectedQuizId === q.id && <Check size={14} />}
+                                      </button>
+                                    ))}
+                                 </div>
+                              </motion.div>
+                           </>
+                         )}
+                      </AnimatePresence>
+                   </div>
+
+                   <div className="flex -space-x-3 overflow-hidden">
+                      {globalLeaderboard.slice(0, 3).map((u, i) => (
+                         <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-100 overflow-hidden shadow-sm">
+                            <img src={u.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.user_id}`} alt="" />
+                         </div>
+                       ))}
+                    </div>
                  </div>
-               ) : submissions.map((s, idx) => (
-                 <motion.div
-                   key={s.id}
-                   whileHover={{ y: -10 }}
-                   onClick={() => fetchSessionDetails(s)}
-                   className="bg-white p-8 rounded-[40px] border border-[#E2E8F0] shadow-sm hover:shadow-2xl hover:shadow-blue-900/5 transition-all cursor-pointer group flex flex-col justify-between h-72 border-b-8 border-b-[#F1F5F9] hover:border-b-[#2563EB]"
-                 >
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-start">
-                          <div className="w-12 h-12 bg-[#F8FAFC] group-hover:bg-[#F0F7FF] rounded-2xl flex items-center justify-center text-[#94A3B8] group-hover:text-[#2563EB] transition-colors shadow-inner">
-                             <Dna size={22} />
-                          </div>
-                          <span className="text-[9px] font-black text-[#94A3B8] group-hover:text-[#2563EB] leading-none pt-1">#{s.id.slice(0, 8)}</span>
-                       </div>
-                       <h4 className="font-extrabold text-[#0F172A] text-lg leading-tight group-hover:text-[#2563EB] transition-colors">{s.quizzes?.title || "PROTOCOL_ANALYSIS"}</h4>
-                    </div>
-
-                    <div className="space-y-3 pt-6">
-                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                          <span className="text-[#94A3B8]">Intelligence Match</span>
-                          <span className={`${s.total_score >= 8 ? "text-emerald-500" : "text-amber-500"}`}>{(s.total_score / 10 * 100).toFixed(0)}%</span>
-                       </div>
-                       <div className="h-1 bg-gray-50 rounded-full overflow-hidden">
-                          <div className={`h-full ${s.total_score >= 8 ? "bg-emerald-500" : "bg-amber-500"}`} style={{ width: `${(s.total_score / 10 * 100)}%` }} />
-                       </div>
-                       <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-2">
-                             <Clock size={12} className="text-[#94A3B8]" />
-                             <span className="text-[9px] font-black text-[#64748B] uppercase tracking-widest">{s.time_taken || 240}s SYNC</span>
-                          </div>
-                          <ArrowRight size={18} className="text-[#94A3B8] group-hover:text-[#2563EB] group-hover:translate-x-1 transition-all" />
-                       </div>
-                    </div>
-                 </motion.div>
-               ))}
-            </div>
+              </div>
+              <div className="bg-white rounded-[32px] border border-[#E2E8F0] shadow-sm overflow-hidden h-fit">
+                <div className="divide-y divide-[#F1F5F9]">
+                   {leaderboardLoading ? (
+                     [1,2,3].map(i => <div key={i} className="h-24 bg-gray-50/50 animate-pulse" />)
+                   ) : globalLeaderboard.map((u, i) => (
+                     <div key={u.id} className="p-6 md:p-8 flex items-center justify-between transition-all hover:bg-slate-50 group">
+                        <div className="flex items-center gap-6">
+                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 ${
+                             i === 0 ? "bg-amber-50 text-amber-500 border-amber-300" :
+                             i === 1 ? "bg-slate-50 text-slate-400 border-slate-200" :
+                             i === 2 ? "bg-orange-50 text-orange-600 border-orange-200" :
+                             "bg-white text-slate-300 border-slate-100"
+                           }`}>
+                             {i + 1}
+                           </div>
+                           <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden shadow-sm border-2 border-white">
+                                 <img src={u.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.user_id}`} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div>
+                                 <p className="text-sm font-extrabold text-[#0F172A] uppercase tracking-tight group-hover:text-blue-600 transition-colors leading-none">{u.profiles?.full_name || "Unknown Candidate"}</p>
+                                 <div className="flex items-center gap-2 mt-1.5 opacity-60">
+                                    <Activity size={10} className="text-blue-500" />
+                                    <span className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest leading-none">Qualified Participant</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-8 text-right">
+                           <div className="hidden sm:block">
+                              <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest leading-none mb-1">Efficiency</p>
+                              <p className="text-xs font-black text-[#0F172A]">{u.time_taken || "24"}s</p>
+                           </div>
+                           <div>
+                              <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest leading-none mb-1">Score</p>
+                              <p className="text-xl font-black text-blue-600">{u.total_score}</p>
+                           </div>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
           </div>
         </section>
-      </main>
     </div>
   );
 }

@@ -8,12 +8,10 @@ import {
   Zap, 
   Lock,
   Loader2,
-  Fingerprint,
+  Users,
   Mail,
-  User,
-  LogOut,
-  ChevronRight,
-  UserPlus
+  Activity,
+  ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -23,7 +21,6 @@ export default function LoginPage() {
   const router = useRouter();
   
   const [isSignUp, setIsSignUp] = useState(false);
-  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,14 +28,11 @@ export default function LoginPage() {
   const [userRole, setUserRole] = useState("candidate");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setMode(isSignUp ? "signup" : "login");
+    setIsMounted(true);
     setError(null);
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setFullName("");
   }, [isSignUp]);
 
   const handleAuth = async (e) => {
@@ -46,8 +40,8 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    if (mode === "login") {
-      // Mock bypass logic
+    // Mock bypass logic
+    if (!isSignUp) {
       if (email === "1" && password === "1") {
         document.cookie = "mock_session=user; path=/";
         router.push("/dashboard");
@@ -55,22 +49,13 @@ export default function LoginPage() {
       }
       if (email === "2" && password === "2") {
         document.cookie = "mock_session=admin; path=/";
-        setUserRole("evaluator");
         router.push("/quiz/admin");
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      } else {
-        router.push("/dashboard");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); setLoading(false); }
+      else { router.push("/dashboard"); }
     } else {
       if (password !== confirmPassword) {
         setError("Security keys do not match.");
@@ -82,412 +67,251 @@ export default function LoginPage() {
         email,
         password,
         options: {
-          data: { 
-            full_name: fullName,
-            role: userRole
-          },
+          data: { full_name: fullName, role: userRole },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
       });
 
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      } else {
-        setError("Check your email for confirmation!");
-        setLoading(false);
-      }
+      if (error) { setError(error.message); setLoading(false); }
+      else { setError("Check your email for confirmation!"); setLoading(false); }
     }
   };
 
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
+    });
+    if (error) { setError(error.message); setLoading(false); }
   };
 
-  /* ─── Blue Branding Panel ─── */
-  const BrandingPanel = () => (
-    <div className="relative z-10 h-full flex flex-col justify-between p-14">
-      <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-12">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-            <ShieldCheck className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter pt-1">Skill Forge</h1>
-        </div>
-        
-        <div className="space-y-8 max-w-[320px]">
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-widest leading-none mb-6">
-              {isSignUp ? "Join the Node" : "Welcome Back to the Node"}
-            </h2>
-            <p className="text-white/70 text-base font-medium leading-relaxed">
-              {isSignUp 
-                ? "Initialize your credentials and begin your NEXUS assessment journey."
-                : "Synchronize your session and resume your NEXUS assessment progress."
-              }
-            </p>
-          </div>
+  const toggleMode = () => setIsSignUp(!isSignUp);
 
-          <div className="space-y-6 pt-4">
-            <div className="flex items-center gap-5 text-white/80">
-              <Zap size={22} className="text-white/40" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em]">Instant Validation</span>
-            </div>
-            <div className="flex items-center gap-5 text-white/80">
-              <Lock size={22} className="text-white/40" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em]">Military Grade Security</span>
-            </div>
-            {isSignUp && (
-              <div className="flex items-center gap-5 text-white/80">
-                <UserPlus size={22} className="text-white/40" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Secure Registration</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="relative z-10">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-3 text-white/30">
-            <div className="w-10 h-px bg-white/20" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Node Protocol 4.2.0</span>
-          </div>
-          <div className="flex gap-10">
-            <span className="text-[10px] font-black text-white/40 hover:text-white transition-colors cursor-pointer uppercase tracking-widest">Privacy</span>
-            <span className="text-[10px] font-black text-white/40 hover:text-white transition-colors cursor-pointer uppercase tracking-widest">Help</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Background Orbs */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-700/50 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/30 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/3" />
-    </div>
-  );
-
-  /* ─── Login Form ─── */
-  const LoginForm = () => (
-    <div className="w-full max-w-[480px]">
-      <div className="text-center mb-8">
-        <p className="text-[13px] font-black text-[#2563EB] uppercase tracking-[0.25em] mb-3">Innovators and Visionaries Club</p>
-        <h1 className="text-[32px] font-black text-[#0F172A] tracking-tight mb-3 leading-none">System Authentication</h1>
-        <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.3em]">Enter Authorized Credentials</p>
-      </div>
-
-      {/* Role Switcher */}
-      <div className="bg-[#f1f5f9] p-1 rounded-[24px] border border-[#e2e8f0] flex relative mb-8 h-12">
-        <motion.div
-          animate={{ left: userRole === "candidate" ? "4px" : "calc(50%)" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-[20px] shadow-lg shadow-blue-900/5"
-        />
-        <button 
-          onClick={() => setUserRole("candidate")}
-          className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "candidate" ? "text-primary-blue" : "text-[#64748b]"}`}
-        >
-          I&apos;m a Candidate
-        </button>
-        <button 
-          onClick={() => setUserRole("evaluator")}
-          className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "evaluator" ? "text-primary-blue" : "text-[#64748b]"}`}
-        >
-          I&apos;m an Evaluator
-        </button>
-      </div>
-
-      <form onSubmit={handleAuth} className="space-y-5">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Identity Identifier</label>
-          <div className="relative group">
-            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Node Email or ID"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Security Key</label>
-          <div className="relative group">
-            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Protocol Key"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-20 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-            <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary-blue uppercase tracking-widest hover:underline">Reset</button>
-          </div>
-        </div>
-
-        <button
-          disabled={loading}
-          className="w-full bg-primary-blue text-white py-5 rounded-[28px] font-black text-xs tracking-[0.3em] uppercase shadow-[0_20px_40px_-10px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
-        >
-          {loading ? <Loader2 className="animate-spin w-5 h-5" /> : (
-            <>
-              <span>Execute Login</span>
-              <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
-            </>
-          )}
-        </button>
-
-        {error && (
-          <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed">{error}</p>
-        )}
-      </form>
-
-      <div className="mt-8 text-center">
-        <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-[0.2em]">
-          Don&apos;t have an account? <span onClick={toggleMode} className="text-[#2563EB] font-black cursor-pointer hover:underline transition-all">Initialize One</span>
-        </p>
-      </div>
-    </div>
-  );
-
-  /* ─── Sign Up Form ─── */
-  const SignUpForm = () => (
-    <div className="w-full max-w-[480px]">
-      <div className="text-center mb-8">
-        <p className="text-[13px] font-black text-[#2563EB] uppercase tracking-[0.25em] mb-3">Innovators and Visionaries Club</p>
-        <h1 className="text-[32px] font-black text-[#0F172A] tracking-tight mb-3 leading-none">Initialize Account</h1>
-        <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-[0.3em]">Generate New Node Credentials</p>
-      </div>
-
-      {/* Role Switcher */}
-      <div className="bg-[#f1f5f9] p-1 rounded-[24px] border border-[#e2e8f0] flex relative mb-8 h-12">
-        <motion.div
-          animate={{ left: userRole === "candidate" ? "4px" : "calc(50%)" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-[20px] shadow-lg shadow-blue-900/5"
-        />
-        <button 
-          type="button"
-          onClick={() => setUserRole("candidate")}
-          className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "candidate" ? "text-primary-blue" : "text-[#64748b]"}`}
-        >
-          I&apos;m a Candidate
-        </button>
-        <button 
-          type="button"
-          onClick={() => setUserRole("evaluator")}
-          className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "evaluator" ? "text-primary-blue" : "text-[#64748b]"}`}
-        >
-          I&apos;m an Evaluator
-        </button>
-      </div>
-
-      <form onSubmit={handleAuth} className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Node Designation</label>
-          <div className="relative group">
-            <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Full Name"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Identity Identifier</label>
-          <div className="relative group">
-            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Node Email"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Security Key</label>
-          <div className="relative group">
-            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create Protocol Key"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Confirm Security Key</label>
-          <div className="relative group">
-            <Fingerprint className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-            <input 
-              required
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter Protocol Key"
-              className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-4 pl-14 pr-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-            />
-          </div>
-        </div>
-
-        <button
-          disabled={loading}
-          className="w-full bg-primary-blue text-white py-5 rounded-[28px] font-black text-xs tracking-[0.3em] uppercase shadow-[0_20px_40px_-10px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
-        >
-          {loading ? <Loader2 className="animate-spin w-5 h-5" /> : (
-            <>
-              <span>Initialize Account</span>
-              <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
-            </>
-          )}
-        </button>
-
-        {error && (
-          <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed">{error}</p>
-        )}
-      </form>
-
-      <div className="mt-6 text-center">
-        <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-[0.2em]">
-          Already have credentials? <span onClick={toggleMode} className="text-[#2563EB] font-black cursor-pointer hover:underline transition-all">Execute Login</span>
-        </p>
-      </div>
-    </div>
-  );
+  if (!isMounted) return null;
 
   return (
-    <div className="min-h-screen w-full bg-[#F0F4F8] flex items-center justify-center p-4 md:p-8 font-sans text-black overflow-hidden relative">
-      <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary-blue/5 rounded-full blur-[100px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-accent-indigo/5 rounded-full blur-[100px] animate-pulse delay-700" />
+    <div className="min-h-screen w-full bg-[#f8fafc] flex items-center justify-center p-8 md:p-12 lg:p-20 font-sans selection:bg-blue-100 overflow-hidden relative">
+      {/* Background Ambience */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-indigo-500/5 rounded-full blur-[120px] animate-pulse delay-1000" />
+      </div>
 
       <motion.div
         layout
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-[1100px] h-[85vh] bg-white rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.12)] border border-white/40 overflow-hidden relative z-10"
+        className="w-full max-w-[960px] bg-white rounded-[12px] shadow-[0_50px_120px_-30px_rgba(0,0,0,0.1)] border border-slate-200 overflow-hidden relative z-10 flex min-h-[540px]"
       >
-        <div className="flex w-full h-full relative">
-          {/* ─── Blue Branding Panel (slides left/right) ─── */}
+        {/* Sliding Branding Panel */}
+        <AnimatePresence mode="wait">
           <motion.div 
-            layout
+            key={isSignUp ? "signup-branding" : "login-branding"}
+            initial={{ opacity: 0, x: isSignUp ? 40 : -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: isSignUp ? 40 : -40 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`hidden md:flex bg-primary-blue text-white overflow-hidden absolute top-0 bottom-0 ${isSignUp ? "right-0" : "left-0"}`}
-            style={{ width: "40%" }}
+            className={`hidden lg:flex bg-[#2563EB] text-white absolute top-0 bottom-0 z-20 w-[400px] flex-col justify-between p-16 ${isSignUp ? "right-0" : "left-0"}`}
           >
-            <BrandingPanel />
-          </motion.div>
-
-          {/* White Panel - Form */}
-          <div className="flex-1 p-12 md:p-20 bg-white flex flex-col justify-center overflow-y-auto">
-            <div className="max-w-[420px] mx-auto w-full">
-              <div className="text-center mb-12">
-                 <p className="text-[18px] md:text-[20px] font-black text-[#2563EB] uppercase tracking-[0.45em] mb-4 whitespace-nowrap">INNOVATORS AND VISIONARIES CLUB</p>
-                 <h1 className="text-4xl md:text-5xl font-black text-[#0F172A] tracking-tighter mb-4 leading-none whitespace-nowrap">System Authentication</h1>
-                 <p className="text-xs font-black text-[#94A3B8] uppercase tracking-[0.4em]">Enter Authorized Credentials</p>
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-20 group">
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 group-hover:bg-white group-hover:text-blue-600 transition-all duration-500">
+                  <ShieldCheck size={28} />
+                </div>
+                <h1 className="text-2xl font-black tracking-tighter uppercase leading-none">Skill Forge</h1>
               </div>
 
-              {/* Role Switcher */}
-              <div className="bg-[#f1f5f9] p-1 rounded-[24px] border border-[#e2e8f0] flex relative mb-10 h-12">
-                 <motion.div
-                    animate={{ x: userRole === "candidate" ? 0 : "100%" }}
-                    className="absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-[20px] shadow-lg shadow-blue-900/5"
-                 />
-                 <button 
+              <div className="space-y-10">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-black leading-[0.9] tracking-tighter uppercase">
+                    {isSignUp ? "Connect Node" : "System Sync"}
+                  </h2>
+                  <p className="text-blue-100/60 text-[10px] font-medium leading-relaxed max-w-[200px]">
+                    {isSignUp 
+                      ? "Establish your node presence in the NEXUS protocol layers."
+                      : "Synchronize your authorization keys."}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { icon: Zap, text: "Instant Validation" },
+                    { icon: Lock, text: "Military Grade Encryption" },
+                    { icon: Activity, text: "Biometric Identity Nodes" }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 text-white/70">
+                      <item.icon size={14} className="text-blue-300" />
+                      <span className="text-[8px] font-black uppercase tracking-[0.2em]">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="relative z-10 space-y-8">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-px bg-white/20" />
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Protocol 4.2.0-S</span>
+              </div>
+              <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-white/30">
+                <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
+                <span className="hover:text-white cursor-pointer transition-colors">Support</span>
+              </div>
+            </div>
+
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 overflow-hidden">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-10">
+                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path d="M0 0 L100 100 M100 0 L0 100" stroke="white" strokeWidth="0.1" />
+                  </svg>
+               </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Content Area */}
+        <div 
+          className={`flex-1 flex flex-col justify-center transition-all duration-700 ease-in-out px-8 md:px-12 py-8 relative ${isSignUp ? "lg:mr-[400px]" : "lg:ml-[400px]"}`}
+        >
+          <div className="max-w-[690px] mx-auto w-full space-y-8 flex flex-col items-center">
+            <div className="w-full space-y-6 text-center flex flex-col items-center">
+              <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                  <ShieldCheck size={24} />
+                </div>
+                <span className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Skill Forge</span>
+              </div>
+              <div className="space-y-3">
+                <p className="text-[11px] font-black text-blue-600 uppercase tracking-[0.5em] mb-4">Innovators and Visionaries Club</p>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                  Welcome
+                </h1>
+              </div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Synchronize your identification parameters below.</p>
+            </div>
+
+            {/* Role/Action UI */}
+            <div className="space-y-8">
+              <div className="bg-slate-100 p-1 rounded-full flex h-16 relative border border-slate-200">
+                <button 
+                  type="button"
                   onClick={() => setUserRole("candidate")}
-                  className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "candidate" ? "text-primary-blue" : "text-[#64748b]"}`}
-                 >
-                   I'm a Candidate
-                 </button>
-                 <button 
+                  className={`flex-1 relative z-10 text-[9px] font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "candidate" ? "text-blue-600" : "text-slate-400"}`}
+                >
+                  I'm a Candidate
+                  {userRole === "candidate" && (
+                    <motion.div 
+                      layoutId="role-pill-main"
+                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      className="absolute inset-0 bg-white rounded-full shadow-sm border border-slate-200 -z-10"
+                    />
+                  )}
+                </button>
+                <button 
+                  type="button"
                   onClick={() => setUserRole("evaluator")}
-                  className={`flex-1 relative z-10 text-[10px] font-black uppercase tracking-widest ${userRole === "evaluator" ? "text-primary-blue" : "text-[#64748b]"}`}
-                 >
-                   I'm an Evaluator
-                 </button>
+                  className={`flex-1 relative z-10 text-[9px] font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "evaluator" ? "text-blue-600" : "text-slate-400"}`}
+                >
+                  I'm an Evaluator
+                  {userRole === "evaluator" && (
+                    <motion.div 
+                      layoutId="role-pill-main"
+                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      className="absolute inset-0 bg-white rounded-full shadow-sm border border-slate-200 -z-10"
+                    />
+                  )}
+                </button>
               </div>
 
               <form onSubmit={handleAuth} className="space-y-6">
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Identity Identifier</label>
-                    <div className="relative group">
-                       <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-                       <input 
-                         required
-                         type="text"
-                         value={email}
-                         onChange={(e) => setEmail(e.target.value)}
-                         placeholder="Node Email or ID"
-                         className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-5 pl-16 pr-8 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-                       />
-                    </div>
-                 </div>
+                {isSignUp && (
+                  <div className="space-y-2 text-left">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Authorized Name</label>
+                    <input 
+                      required
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter Node Identity Name"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all"
+                    />
+                  </div>
+                )}
 
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest ml-4">Security Key</label>
-                    <div className="relative group">
-                       <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] group-focus-within:text-primary-blue transition-colors" />
-                       <input 
-                         required
-                         type="password"
-                         value={password}
-                         onChange={(e) => setPassword(e.target.value)}
-                         placeholder="Protocol Key"
-                         className="w-full bg-[#f8fafc] border-2 border-[#e2e8f0] rounded-[28px] py-5 pl-16 pr-20 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-primary-blue focus:ring-8 focus:ring-blue-100/50 transition-all placeholder:text-[#cbd5e1]"
-                       />
-                       <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary-blue uppercase tracking-widest hover:underline">Reset</button>
-                    </div>
-                 </div>
+                <div className="space-y-2 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Node Credentials</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                    <input 
+                      required
+                      type="text"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="authorized@skillforge.io"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all"
+                    />
+                  </div>
+                </div>
 
-                 <button
-                    disabled={loading}
-                    className="w-full bg-primary-blue text-white py-6 rounded-[28px] font-black text-xs tracking-[0.4em] uppercase shadow-[0_20px_40px_-10px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
-                 >
-                    {loading ? <Loader2 className="animate-spin w-5 h-5" /> : (
-                      <>
-                        <span>Execute Login</span>
-                        <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
-                      </>
-                    )}
-                 </button>
+                <div className="space-y-2 text-left">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Security Protocol Key</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                    <input 
+                      required
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all"
+                    />
+                  </div>
+                </div>
 
-                 {error && (
-                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed">{error}</p>
-                 )}
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Confirm Key</label>
+                    <input 
+                      required
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all"
+                    />
+                  </div>
+                )}
 
-                 <div className="relative py-8 flex items-center">
-                    <div className="flex-1 h-px bg-[#F1F5F9]" />
-                    <span className="px-6 text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.4em]">Secondary Authentication</span>
-                    <div className="flex-1 h-px bg-[#F1F5F9]" />
-                 </div>
+                <button
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xs tracking-[0.4em] uppercase shadow-xl shadow-blue-200 hover:bg-blue-700 hover:shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 group"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : (
+                    <>
+                      <span>{isSignUp ? "Initialize Sync" : "Establish Link"}</span>
+                      <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
+                    </>
+                  )}
+                </button>
 
-                 <button 
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  className="w-full bg-white border-2 border-[#E2E8F0] py-5 rounded-[28px] flex items-center justify-center gap-4 hover:bg-[#F8FAFC] transition-all group active:scale-[0.98]"
-                 >
-                   <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="G" />
-                   <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#1E293B]">Continue with Google</span>
-                 </button>
+                {error && (
+                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed italic">{error}</p>
+                )}
+
               </form>
 
-              <div className="mt-12 text-center">
-                 <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-widest">Don't have an account? <span className="text-primary-blue font-black cursor-pointer hover:underline">Initialize One</span></p>
+              <div className="text-center pt-4 flex flex-col items-center">
+                <div className="flex items-center gap-3 text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">
+                  <span>{isSignUp ? "Already Enrolled?" : "New Node Signature?"}</span>
+                  <button 
+                    type="button"
+                    onClick={() => setIsSignUp(!isSignUp)}
+                    className="text-blue-600 hover:text-blue-700 transition-colors cursor-pointer font-extrabold underline decoration-2 underline-offset-4"
+                  >
+                    {isSignUp ? "Sync Credentials" : "Enroll Node"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

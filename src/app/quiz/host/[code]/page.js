@@ -26,12 +26,10 @@ export default function AdminHostPage() {
   
   const [quiz, setQuiz] = useState(null);
   const [participants, setParticipants] = useState([]);
+  const [joinCount, setJoinCount] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [timer, setTimer] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('lobby');
-  const timerRef = useRef(null);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     async function loadHostData() {
@@ -61,6 +59,11 @@ export default function AdminHostPage() {
           { event: 'INSERT', schema: 'public', table: 'submissions', filter: `quiz_id=eq.${quizData.id}` },
           () => fetchLeaderboard(quizData.id)
         )
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const count = Object.keys(state).length;
+          setJoinCount(count);
+        })
         .subscribe();
 
       return () => {
@@ -99,16 +102,36 @@ export default function AdminHostPage() {
     setStatus(newStatus);
   };
 
+  const executeCountdown = async (callback) => {
+    setStatus('countdown');
+    await supabase.from("quizzes").update({ status: 'countdown' }).eq("id", quiz.id);
+    
+    let count = 3;
+    setCountdown(count);
+    const interval = setInterval(() => {
+      count -= 1;
+      setCountdown(count);
+      if (count <= 0) {
+        clearInterval(interval);
+        callback();
+      }
+    }, 1000);
+  };
+
   const startQuiz = async () => {
-    await updateQuizStatus('showing-question', 0);
-    startTimer(30);
+    executeCountdown(async () => {
+      await updateQuizStatus('showing-question', 0);
+      startTimer(30);
+    });
   };
 
   const nextQuestion = async () => {
     const nextIdx = quiz.current_question_index + 1;
     if (nextIdx < quiz.questions.length) {
-      await updateQuizStatus('showing-question', nextIdx);
-      startTimer(30);
+      executeCountdown(async () => {
+        await updateQuizStatus('showing-question', nextIdx);
+        startTimer(30);
+      });
     } else {
       await updateQuizStatus('finished');
     }
@@ -149,14 +172,19 @@ export default function AdminHostPage() {
                    <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">{quiz.title}</h1>
                 </div>
              </div>
-             <div className="bg-white/5 border border-white/10 px-8 py-3 rounded-2xl flex items-center gap-6">
-                <div className="flex items-center gap-3">
-                   <Monitor className="text-white/40 w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-white/40">TV DISPLAY ACTIVE</span>
-                </div>
-                <div className="w-1 h-3 bg-white/10" />
-                <span className="text-xs font-black tracking-[0.2em]">{code}</span>
-             </div>
+              <div className="bg-white/5 border border-white/10 px-8 py-3 rounded-2xl flex items-center gap-6">
+                 <div className="flex items-center gap-3">
+                    <Users className="text-primary-blue w-4 h-4" />
+                    <span className="text-[12px] font-black text-white">{joinCount} JOINED</span>
+                 </div>
+                 <div className="w-1 h-3 bg-white/10" />
+                 <div className="flex items-center gap-3">
+                    <Monitor className="text-white/40 w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40">TV DISPLAY ACTIVE</span>
+                 </div>
+                 <div className="w-1 h-3 bg-white/10" />
+                 <span className="text-xs font-black tracking-[0.2em]">{code}</span>
+              </div>
           </header>
 
           <main className="flex-1 flex flex-col justify-center max-w-5xl mx-auto w-full space-y-16 py-10 relative">
