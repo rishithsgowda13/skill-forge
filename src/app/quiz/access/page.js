@@ -52,15 +52,15 @@ export default function ProtocolAccessPage() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ scale: 1.02, transition: { duration: 0.4 } }}
-        className="w-full max-w-[480px] bg-white rounded-[56px] shadow-[0_60px_100px_-20px_rgba(37,99,235,0.12)] border border-[#f1f5f9] p-20 md:p-16 text-center space-y-16 relative overflow-hidden group"
+        className="w-full max-w-[480px] bg-white rounded-[40px] md:rounded-[56px] shadow-[0_60px_100px_-20px_rgba(37,99,235,0.12)] border border-[#f1f5f9] p-8 md:p-16 text-center space-y-10 md:space-y-16 relative overflow-hidden group"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-100/50 transition-colors" />
-        <div className="space-y-6">
-          <div className="w-20 h-20 bg-blue-50/80 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Lock className="text-primary-blue w-10 h-10" strokeWidth={2.5} />
+        <div className="space-y-4 md:space-y-6">
+          <div className="w-16 md:w-20 h-16 md:h-20 bg-blue-50/80 rounded-[28px] md:rounded-[32px] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-inner">
+            <Lock className="text-primary-blue w-8 md:w-10 h-8 md:h-10" strokeWidth={2.5} />
           </div>
-          <h1 className="text-5xl font-black tracking-tighter text-[#0f172a] leading-none">Protocol <span className="text-primary-blue">Lockdown</span></h1>
-          <p className="text-[12px] font-black text-[#94a3b8] uppercase tracking-[0.5em]">Initialize High-Fidelity Session Access</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-[#0f172a] leading-tight md:leading-none">Protocol <span className="text-primary-blue">Lockdown</span></h1>
+          <p className="text-[10px] md:text-[12px] font-black text-[#94a3b8] uppercase tracking-[0.4em] md:tracking-[0.5em]">Initialize High-Fidelity Session Access</p>
         </div>
 
         <form onSubmit={handleAccess} className="space-y-8">
