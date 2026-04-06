@@ -60,6 +60,7 @@ export default function Sidebar() {
   };
 
   const isAdmin = role === "admin" || role === "evaluator";
+  const isParent = role === "parent";
 
   const adminItems = [
     { href: "/quiz/admin", label: "Control Center", icon: LayoutDashboard },
@@ -69,13 +70,18 @@ export default function Sidebar() {
     { href: "/quiz/admin/security", label: "Security Audit", icon: ShieldCheck },
   ];
 
+  const parentItems = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/reports", label: "Performance Reports", icon: Activity },
+  ];
+
   const candidateItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/quiz/access", label: "Protocol", icon: Zap },
     { href: "/dashboard/reports", label: "Reports", icon: Activity },
   ];
 
-  const navItems = isAdmin ? adminItems : candidateItems;
+  const navItems = isAdmin ? adminItems : isParent ? parentItems : candidateItems;
 
   return (
     <>
@@ -149,7 +155,7 @@ export default function Sidebar() {
               >
                   <div className="w-1 h-1 rounded-full bg-[#94A3B8]" />
                   <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#94A3B8] leading-none">
-                    {isAdmin ? "Evaluator Node" : "Candidate Station"}
+                    {isAdmin ? "Evaluator Node" : isParent ? "Parent Guard" : "Candidate Station"}
                   </span>
               </motion.div>
             ) : (
