@@ -154,7 +154,7 @@ export default function LoginPage() {
                   <h2 className="text-3xl font-black leading-[0.9] tracking-tighter uppercase">
                     {isSignUp ? "Connect Node" : "System Sync"}
                   </h2>
-                  <p className="text-blue-100/60 text-[10px] font-medium leading-relaxed max-w-[200px]">
+                  <p className="text-blue-100/60 text-sm font-medium leading-relaxed max-w-[200px]">
                     {isSignUp 
                       ? "Establish your node presence in the NEXUS protocol layers."
                       : "Synchronize your authorization keys."}
@@ -169,7 +169,7 @@ export default function LoginPage() {
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 text-white/70">
                       <item.icon size={14} className="text-blue-300" />
-                      <span className="text-[8px] font-black uppercase tracking-[0.2em]">{item.text}</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em]">{item.text}</span>
                     </div>
                   ))}
                 </div>
@@ -179,9 +179,9 @@ export default function LoginPage() {
             <div className="relative z-10 space-y-8">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-px bg-white/20" />
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Protocol 4.2.0-S</span>
+                <span className="text-xs font-black uppercase tracking-[0.4em] text-white/40">Protocol 4.2.0-S</span>
               </div>
-              <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-white/30">
+              <div className="flex gap-8 text-sm font-black uppercase tracking-widest text-white/30">
                 <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
                 <span className="hover:text-white cursor-pointer transition-colors">Support</span>
               </div>
@@ -213,15 +213,15 @@ export default function LoginPage() {
                 </div>
                 <div className="text-left">
                   <span className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none block">Skill Forge</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600/60 leading-none mt-1 block">Nexus Node</span>
+                  <span className="text-sm font-black uppercase tracking-[0.3em] text-blue-600/60 leading-none mt-1 block">Nexus Node</span>
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="hidden lg:block text-[11px] font-black text-blue-600 uppercase tracking-[0.5em] mb-4">Innovators and Visionaries Club</p>
+                <p className="hidden lg:block text-base font-black text-blue-600 uppercase tracking-[0.5em] mb-4">Innovators and Visionaries Club</p>
                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
                   {isSignUp ? "Initialize" : "Welcome"}
                 </h1>
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] leading-loose">Synchronize your identification parameters</p>
+                <p className="text-base font-black text-slate-400 uppercase tracking-[0.4em] leading-loose">Synchronize your identification parameters</p>
               </div>
             </div>
 
@@ -231,7 +231,7 @@ export default function LoginPage() {
                 <button 
                   type="button"
                   onClick={() => setUserRole("candidate")}
-                  className={`flex-1 relative z-10 text-[9px] font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "candidate" ? "text-blue-600" : "text-slate-400"}`}
+                  className={`flex-1 relative z-10 text-xs font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "candidate" ? "text-blue-600" : "text-slate-400"}`}
                 >
                   I'm a Candidate
                   {userRole === "candidate" && (
@@ -245,7 +245,7 @@ export default function LoginPage() {
                 <button 
                   type="button"
                   onClick={() => setUserRole("evaluator")}
-                  className={`flex-1 relative z-10 text-[9px] font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "evaluator" ? "text-blue-600" : "text-slate-400"}`}
+                  className={`flex-1 relative z-10 text-xs font-black uppercase tracking-wider transition-colors duration-300 ${userRole === "evaluator" ? "text-blue-600" : "text-slate-400"}`}
                 >
                   I'm an Evaluator
                   {userRole === "evaluator" && (
@@ -261,7 +261,7 @@ export default function LoginPage() {
               <form onSubmit={handleAuth} className="space-y-6">
                 {isSignUp && (
                   <div className="space-y-2 text-left">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Authorized Name</label>
+                    <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Authorized Name</label>
                     <input 
                       required
                       type="text"
@@ -274,7 +274,7 @@ export default function LoginPage() {
                 )}
 
                 <div className="space-y-2 text-left">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Node Credentials</label>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Node Credentials</label>
                   <div className="relative group">
                     <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                     <input 
@@ -289,7 +289,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2 text-left">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Security Protocol Key</label>
+                  <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Security Protocol Key</label>
                   <div className="relative group">
                     <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                     <input 
@@ -305,7 +305,7 @@ export default function LoginPage() {
 
                 {isSignUp && (
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Confirm Key</label>
+                    <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-4">Confirm Key</label>
                     <input 
                       required
                       type="password"
@@ -330,13 +330,13 @@ export default function LoginPage() {
                 </button>
 
                 {error && (
-                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed italic">{error}</p>
+                  <p className="text-sm font-black text-rose-500 uppercase tracking-widest text-center pt-2 leading-relaxed italic">{error}</p>
                 )}
 
               </form>
 
               <div className="text-center pt-4 flex flex-col items-center">
-                <div className="flex items-center gap-3 text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">
+                <div className="flex items-center gap-3 text-sm font-black text-slate-300 uppercase tracking-widest leading-relaxed">
                   <span>{isSignUp ? "Already Enrolled?" : "New Node Signature?"}</span>
                   <button 
                     type="button"

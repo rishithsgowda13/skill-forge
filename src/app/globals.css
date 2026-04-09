@@ -39,7 +39,7 @@
     background-color: var(--color-page-bg);
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
-    font-size: 13.5px; /* Scaled 1.5x from original 9px */
+    font-size: 18px; /* High-Fidelity Professional Scale (1.5x larger than standard 12px archetypes) */
   }
 
   body {
@@ -133,7 +133,7 @@
 /* Responsive Font Scaling */
 @media (max-width: 640px) {
   html {
-    font-size: 12.75px; /* Scaled 1.5x from 8.5px */
+    font-size: 16px; /* High-Fidelity Mobile Scale */
   }
 }
 
