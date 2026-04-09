@@ -60,15 +60,23 @@ export default function AdminHostPage() {
       }
       
       setQuiz(quizData);
-      setStatus(quizData.status || 'lobby');
+      
+      // If quiz is already finished when admin enters, reset it to lobby for a fresh start
+      if (quizData.status === 'finished') {
+        await supabase.from("quizzes").update({ status: 'lobby', current_question_index: 0 }).eq("id", quizData.id);
+        setStatus('lobby');
+      } else {
+        setStatus(quizData.status || 'lobby');
+      }
+      
       setLoading(false);
 
-      // Fetch leaderboard/participants
+      // Initial Data Load
       fetchLeaderboard(quizData.id);
 
-      // Subscribe to submissions for real-time leaderboard
+      // Subscribe to communications and presence
       const channel = supabase
-        .channel(`quiz_host_${code}`)
+        .channel(`quiz_session_${code.toUpperCase()}`)
         .on(
           'postgres_changes', 
           { event: 'INSERT', schema: 'public', table: 'submissions', filter: `quiz_id=eq.${quizData.id}` },
@@ -76,7 +84,8 @@ export default function AdminHostPage() {
         )
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
-          const count = Object.keys(state).length;
+          // Count total tracking nodes across all keys
+          const count = Object.values(state).reduce((acc, curr) => acc + curr.length, 0);
           setJoinCount(count);
         })
         .subscribe();
@@ -133,7 +142,15 @@ export default function AdminHostPage() {
     }, 1000);
   };
 
+  const resetQuiz = async () => {
+    await updateQuizStatus('lobby', 0);
+  };
+
   const startQuiz = async () => {
+    // Clear any existing scores/submissions if starting over
+    await supabase.from("submissions").delete().eq("quiz_id", quiz.id);
+    setLeaderboard([]);
+    
     executeCountdown(async () => {
       await updateQuizStatus('showing-question', 0);
       setTimeout(() => startTimer(30), 3000);
@@ -423,22 +440,32 @@ export default function AdminHostPage() {
              </AnimatePresence>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-100 relative z-10">
-             <div className="p-8 bg-blue-50/50 rounded-[40px] border border-blue-100 flex items-center gap-6">
-                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/5">
-                   <Award className="text-primary-blue w-8 h-8" />
-                </div>
-                <div>
-                   <p className="text-xs font-black text-primary-blue uppercase tracking-widest leading-none mb-1">Top Performer</p>
-                   <p className="text-xl font-black text-[#0F172A] tracking-tighter uppercase whitespace-nowrap">
-                     {leaderboard[0]?.profiles?.full_name || "SEARCHING..."}
-                   </p>
-                </div>
-             </div>
-          </div>
+           {/* Top Performer Card */}
+           <div className="mt-auto bg-[#F8FAFC] border border-[#E2E8F0] p-6 rounded-[32px] flex items-center gap-6 group">
+              <div className="w-14 h-14 bg-white border border-[#E2E8F0] rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                 <Award className="text-primary-blue w-8 h-8" />
+              </div>
+              <div className="flex-1">
+                 <p className="text-[10px] font-black text-primary-blue uppercase tracking-[0.3em] mb-1">Top Performer</p>
+                 <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-tight">
+                    {leaderboard[0]?.profiles?.full_name || "Searching..."}
+                 </h3>
+              </div>
+           </div>
+
+           {/* Admin Controls */}
+           <div className="mt-6 flex flex-col gap-3">
+              <button 
+                onClick={resetQuiz}
+                className="w-full py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all flex items-center justify-center gap-3"
+              >
+                <Zap size={14} />
+                <span>Recalibrate Protocol Node</span>
+              </button>
+           </div>
+        </div>
 
           <div className="absolute bottom-[-10%] left-[-10%] w-[120%] h-[20%] bg-primary-blue opacity-[0.02] blur-[100px] -rotate-12 pointer-events-none" />
        </div>
-    </div>
-  );
-}
+    );
+ }
