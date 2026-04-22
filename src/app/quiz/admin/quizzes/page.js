@@ -182,11 +182,26 @@ export default function AdminQuizzesPage() {
                     </button>
                     <button 
                       onClick={async () => {
-                        // Reset to lobby before starting session
-                        await supabase.from("quizzes").update({ status: 'lobby', current_question_index: 0 }).eq("id", q.id);
-                        router.push(`/quiz/host/${q.access_code}`);
+                        try {
+                          const { error } = await supabase
+                            .from("quizzes")
+                            .update({ status: 'lobby', current_question_index: 0 })
+                            .eq("id", q.id);
+                          
+                          if (error) throw error;
+                          
+                          if (!q.access_code) {
+                            alert("CRITICAL ERROR: No access code generated for this protocol.");
+                            return;
+                          }
+                          
+                          router.push(`/quiz/host/${q.access_code}`);
+                        } catch (err) {
+                          console.error("Session Initialization Failed:", err);
+                          alert(`FAILED TO START SESSION: ${err.message || "Check connection to neural network."}`);
+                        }
                       }}
-                      className="w-10 h-10 bg-[#0F172A] text-white rounded-xl flex items-center justify-center hover:bg-primary-blue transition-colors shadow-lg"
+                      className="w-10 h-10 bg-[#0F172A] text-white rounded-xl flex items-center justify-center hover:bg-primary-blue transition-all shadow-lg active:scale-95"
                     >
                       <Play size={18} fill="currentColor" />
                     </button>

@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   ArrowRight,
   Clock,
-  Users
+  Users,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -73,6 +74,21 @@ export default function QuizConfigurePage({ params }) {
     setLoading(false);
   };
 
+  const handleUpdateAccessKey = async (newKey) => {
+    if (!newKey) return;
+    const { error } = await supabase
+      .from("quizzes")
+      .update({ access_code: newKey.toUpperCase() })
+      .eq("id", id);
+    
+    if (!error) {
+      setQuiz({ ...quiz, access_code: newKey.toUpperCase() });
+      alert("ACCESS PROTOCOL UPDATED");
+    } else {
+      alert("UPDATE FAILED: " + error.message);
+    }
+  };
+
   const handleAuthorizeNode = async (e) => {
     e.preventDefault();
     if (!newQuestion.content.trim()) return;
@@ -83,7 +99,7 @@ export default function QuizConfigurePage({ params }) {
       const { error } = await supabase
         .from("questions")
         .update({
-          content: newQuestion.content,
+          question_text: newQuestion.content,
           options: newQuestion.options,
           correct_answer: newQuestion.correct_answer,
           time_limit: newQuestion.time_limit,
@@ -105,12 +121,13 @@ export default function QuizConfigurePage({ params }) {
         .insert([
           { 
             quiz_id: id, 
-            content: newQuestion.content, 
+            question_text: newQuestion.content, 
             options: newQuestion.options,
             correct_answer: newQuestion.correct_answer,
             time_limit: newQuestion.time_limit || 30,
             points: newQuestion.points || 100,
-            order_index: questions.length 
+            order_index: questions.length,
+            question_type: 'mcq'
           }
         ]);
 
@@ -174,6 +191,21 @@ export default function QuizConfigurePage({ params }) {
                     </span>
                  </div>
 
+                 <div className="flex items-center gap-3 bg-white px-5 md:px-8 py-3 md:py-4 rounded-[16px] md:rounded-[24px] border-2 border-primary-blue/30 shadow-lg shadow-blue-50 w-full sm:w-auto group">
+                    <Lock size={18} className="text-primary-blue" />
+                    <div className="flex flex-col">
+                       <span className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest leading-none mb-1">Access Protocol</span>
+                       <input 
+                         type="text"
+                         defaultValue={quiz?.access_code || ""}
+                         placeholder="NOT_SET"
+                         className="bg-transparent text-[11px] md:text-sm font-black text-[#0F172A] outline-none uppercase w-24"
+                         onBlur={(e) => handleUpdateAccessKey(e.target.value)}
+                         onKeyDown={(e) => e.key === 'Enter' && handleUpdateAccessKey(e.target.value)}
+                       />
+                    </div>
+                 </div>
+
                  {editingQuestionId ? (
                    <button 
                      onClick={() => handleDeleteQuestion(editingQuestionId)}
@@ -219,7 +251,7 @@ export default function QuizConfigurePage({ params }) {
                            <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.4em] ml-2 md:ml-6">Challenge Content Matrix</label>
                            <textarea 
                              required
-                             value={newQuestion.content}
+                             value={newQuestion.content || ""}
                              onChange={(e) => setNewQuestion({...newQuestion, content: e.target.value})}
                              placeholder="Enter the technical challenge protocol..."
                              className="w-full bg-[#F8FAFC] border-2 border-[#E2E8F0] rounded-[24px] md:rounded-[32px] p-6 md:p-8 text-lg md:text-2xl font-black text-[#0F172A] focus:outline-none focus:border-[#2563EB] flex-1 min-h-[160px] md:min-h-0 resize-none"
@@ -263,7 +295,7 @@ export default function QuizConfigurePage({ params }) {
                                        <input 
                                          type="text"
                                          required
-                                         value={newQuestion.options[idx]}
+                                         value={newQuestion.options[idx] || ""}
                                          onChange={(e) => {
                                            const opts = [...newQuestion.options];
                                            opts[idx] = e.target.value;
@@ -354,11 +386,11 @@ export default function QuizConfigurePage({ params }) {
                                 onClick={() => {
                                   setEditingQuestionId(q.id);
                                   setNewQuestion({
-                                    content: q.content,
-                                    options: q.options,
-                                    correct_answer: q.correct_answer,
-                                    time_limit: q.time_limit,
-                                    points: q.points
+                                    content: q.question_text || q.content || "",
+                                    options: q.options || ["", "", "", ""],
+                                    correct_answer: q.correct_answer || "A",
+                                    time_limit: q.time_limit || 30,
+                                    points: q.points || 100
                                   });
                                   window.scrollTo({ top: 300, behavior: 'smooth' });
                                 }}
