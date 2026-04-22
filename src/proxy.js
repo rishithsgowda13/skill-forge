@@ -8,23 +8,27 @@ export async function proxy(request) {
     },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          request.cookies.set({ name, value, ...options });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove: (name, options) => {
-          request.cookies.set({ name, value: "", ...options });
-          response.cookies.set({ name, value: "", ...options });
-        },
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    console.error("Supabase environment variables are missing in middleware!");
+    return response; // Skip auth check if config is missing
+  }
+
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      get: (name) => request.cookies.get(name)?.value,
+      set: (name, value, options) => {
+        request.cookies.set({ name, value, ...options });
+        response.cookies.set({ name, value, ...options });
       },
-    }
-  );
+      remove: (name, options) => {
+        request.cookies.set({ name, value: "", ...options });
+        response.cookies.set({ name, value: "", ...options });
+      },
+    },
+  });
 
   const { data: { user } } = await supabase.auth.getUser();
   const mockSession = request.cookies.get("mock_session")?.value;
@@ -82,7 +86,7 @@ export async function proxy(request) {
         .eq("id", user.id)
         .single();
 
-      if (profile?.role !== "admin") {
+      if (profile?.role !== "admin" && profile?.role !== "evaluator") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     } else {

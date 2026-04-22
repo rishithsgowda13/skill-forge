@@ -32,6 +32,7 @@ export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
+  const [pasteErrorMessage, setPasteErrorMessage] = useState("");
 
   const supabase = createClient();
   const router = useRouter();
@@ -114,10 +115,27 @@ export default function ReportsPage() {
     }, 1500);
   };
 
-  const handlePaste = (e) => {
+  const handlePaste = (e, setter, currentValue) => {
     e.preventDefault();
-    setShowPasteWarning(true);
-    setTimeout(() => setShowPasteWarning(false), 3000);
+    const pastedData = e.clipboardData.getData("text");
+    
+    if (pastedData.length > 100) {
+      setPasteErrorMessage("cannot paste more than 100 characters at once");
+      setShowPasteWarning(true);
+      setTimeout(() => setShowPasteWarning(false), 3000);
+      return;
+    }
+
+    // Filter for plain text only (strip any non-textual data if necessary, though clipboard text is usually safe)
+    const cleanText = pastedData.replace(/[^\x20-\x7E\s]/g, ''); 
+    
+    // Manual insertion to ensure we control the state update precisely
+    const target = e.target;
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    const newValue = currentValue.substring(0, start) + cleanText + currentValue.substring(end);
+    
+    setter(newValue);
   };
 
   const isAdmin = role === "admin";
@@ -325,7 +343,8 @@ export default function ReportsPage() {
                 <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.3em] ml-4">Overview</label>
                 <textarea
                   value={overview}
-                  onPaste={handlePaste}
+                  value={overview}
+                  onPaste={(e) => handlePaste(e, setOverview, overview)}
                   onChange={(e) => setOverview(e.target.value)}
                   placeholder="Provide a brief overview of your findings..."
                   className="w-full min-h-[120px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[12px] p-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-[#94A3B8] resize-none"
@@ -336,7 +355,8 @@ export default function ReportsPage() {
                 <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.3em] ml-4">Applications in Real World</label>
                 <textarea
                   value={applications}
-                  onPaste={handlePaste}
+                  value={applications}
+                  onPaste={(e) => handlePaste(e, setApplications, applications)}
                   onChange={(e) => setApplications(e.target.value)}
                   placeholder="How can this be applied in real-world scenarios..."
                   className="w-full min-h-[100px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[12px] p-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-[#94A3B8] resize-none"
@@ -348,7 +368,8 @@ export default function ReportsPage() {
                   <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.3em] ml-4">Your thoughts</label>
                   <textarea
                     value={thoughts}
-                    onPaste={handlePaste}
+                    value={thoughts}
+                    onPaste={(e) => handlePaste(e, setThoughts, thoughts)}
                     onChange={(e) => setThoughts(e.target.value)}
                     placeholder="Share your personal analysis..."
                     className="w-full min-h-[100px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[12px] p-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-[#94A3B8] resize-none"
@@ -358,7 +379,8 @@ export default function ReportsPage() {
                   <label className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.3em] ml-4">Future improvements</label>
                   <textarea
                     value={improvements}
-                    onPaste={handlePaste}
+                    value={improvements}
+                    onPaste={(e) => handlePaste(e, setImprovements, improvements)}
                     onChange={(e) => setImprovements(e.target.value)}
                     placeholder="Suggest enhancements for the protocol..."
                     className="w-full min-h-[100px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-[12px] p-6 text-sm font-bold text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-[#94A3B8] resize-none"
@@ -495,17 +517,17 @@ export default function ReportsPage() {
             <AnimatePresence>
               {showPasteWarning && (
                 <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 50 }}
-                  className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[200] bg-white border border-[#E2E8F0] shadow-2xl rounded-full px-10 py-5 flex items-center gap-6"
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 50, scale: 0.9 }}
+                  className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[200] bg-white border-2 border-red-100 shadow-[0_30px_60px_-15px_rgba(220,38,38,0.3)] rounded-[32px] px-12 py-8 flex items-center gap-8 min-w-[500px]"
                 >
-                   <div className="w-10 h-10 bg-amber-50 rounded-2xl flex items-center justify-center">
-                      <AlertCircle className="text-amber-500 w-5 h-5" />
+                   <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <AlertCircle className="text-red-600 w-8 h-8 animate-pulse" />
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#0F172A]">Security Protocol</span>
-                      <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-tighter">Paste option is disabled for this</span>
+                      <span className="text-sm font-black uppercase tracking-[0.3em] text-red-600 mb-1">Security Protocol Violation</span>
+                      <span className="text-xl font-black text-[#0F172A] uppercase tracking-tight leading-none">{pasteErrorMessage}</span>
                    </div>
                 </motion.div>
               )}

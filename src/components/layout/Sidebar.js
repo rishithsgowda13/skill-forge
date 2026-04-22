@@ -36,8 +36,11 @@ export default function Sidebar() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
-        if (profile) setUserName(profile.full_name);
+        const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).single();
+        if (profile) {
+          setUserName(profile.full_name);
+          if (profile.role) setRole(profile.role);
+        }
       }
       
       const cookies = document.cookie.split(';');

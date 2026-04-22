@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import Sidebar from "@/components/layout/Sidebar";
@@ -12,70 +12,27 @@ import {
   Trophy,
   Loader2,
   RefreshCw,
-  ExternalLink,
-  ChevronRight
+  Upload,
+  Database,
+  Shuffle,
+  Trash2,
+  AlertCircle,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const RESEARCH_TOPICS = [
-  "Artificial Intelligence in Healthcare",
-  "Quantum Computing and Cryptography",
-  "Blockchain and Decentralized Finance",
-  "Renewable Energy Systems and Grid Integration",
-  "Cybersecurity in the Age of IoT",
-  "Ethics of Algorithmic Decision Making",
-  "Edge Computing and 5G Technology",
-  "Autonomous Vehicles and Urban Mobility",
-  "Genetic Engineering and CRISPR Technology",
-  "Climate Change Mitigation Strategies",
-  "Circular Economy and Sustainable Manufacturing",
-  "Nanotechnology in Drug Delivery",
-  "Space Exploration and In-Situ Resource Utilization",
-  "Augmented and Virtual Reality in Education",
-  "Natural Language Processing and Conversational AI",
-  "Smart Cities and Infrastructure Resilience",
-  "Robotics and Human-Robot Interaction",
-  "Big Data Analytics and Predictive Modeling",
-  "Neuromorphic Computing Architectures",
-  "Digital Twins in Industrial IoT",
-  "Microservices Architecture and Scalability",
-  "DevOps Culture and Automation",
-  "Full-Stack Performance Optimization",
-  "Software Design Patterns and Refactoring",
-  "Functional Programming in Modern Web Dev",
-  "Web3 and the Future of Social Networks",
-  "Privacy-Preserving Computation",
-  "Computational Biology and Proteomics",
-  "Advanced Materials and Superconductors",
-  "Human-Centered Design and UX Research",
-  "Game Theory in Network Economics",
-  "Deep Learning and Neural Network Interpretability",
-  "Cloud Native Security and Zero Trust",
-  "Distributed Systems and Consensus Algorithms",
-  "Wireless Sensor Networks and Data Aggregation",
-  "Computer Vision and Image Recognition",
-  "Reinforcement Learning in Robotics",
-  "Multi-Agent Systems and Swarm Intelligence",
-  "High-Performance Computing and Parallel Algorithms",
-  "Semantic Web and Knowledge Graphs",
-  "Information Retrieval and Search Engine Algorithms",
-  "Cryptography and Secure Multi-Party Computation",
-  "Network Function Virtualization and Software Defined Networking",
-  "E-waste Management and Sustainable Electronics",
-  "Agile Methodologies and Project Management",
-  "Enterprise Resource Planning and Digital Transformation",
-  "FinTech Innovation and Regulatory Technology",
-  "Biometric Authentication and Identity Management",
-  "Machine Learning Operations (MLOps)",
-  "Data Governance and Information Privacy"
-];
 
 export default function Round2SelectionPage() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
+  const [problemStatements, setProblemStatements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
+  const [allocating, setAllocating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
+  
   const supabase = createClient();
 
   useEffect(() => {
@@ -100,19 +57,24 @@ export default function Round2SelectionPage() {
           .eq("id", user.id)
           .single();
         
-        if (profile?.role !== "admin") {
+        if (profile?.role !== "admin" && profile?.role !== "evaluator") {
           router.push("/");
           return;
         }
       }
       
-      loadUsers();
+      loadData();
     }
     checkAuth();
   }, []);
 
-  async function loadUsers() {
+  async function loadData() {
     setLoading(true);
+    await Promise.all([loadUsers(), loadProblemStatements()]);
+    setLoading(false);
+  }
+
+  async function loadUsers() {
     // Fetch users who have submitted a quiz
     const { data: submissions } = await supabase
       .from("submissions")
@@ -122,39 +84,191 @@ export default function Round2SelectionPage() {
     // Get unique users from submissions
     const uniqueUserIds = [...new Set(submissions?.map(s => s.user_id) || [])];
     
-    // Fetch all profiles to ensure we have the latest round 2 data
-    // We assume profiles has round2_topic and round2_status fields
     const { data: profiles } = await supabase
       .from("profiles")
       .select("*")
       .in("id", uniqueUserIds);
 
     setUsers(profiles || []);
-    setLoading(false);
   }
 
-  const assignTopic = async (userId) => {
-    setUpdating(userId);
-    const randomTopic = RESEARCH_TOPICS[Math.floor(Math.random() * RESEARCH_TOPICS.length)];
+  async function loadProblemStatements() {
+    const { data, error } = await supabase
+      .from("problem_statements")
+      .select("*")
+      .order("created_at", { ascending: true });
     
-    // Update profile with round 2 info
-    // Note: If these columns don't exist, this will error in real Supabase.
-    // However, for the sake of the task, we implement the logic.
+    if (error) {
+      console.error("Error loading PS:", error);
+    } else {
+      setProblemStatements(data || []);
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      
+      // Assume first line is header if it looks like one, otherwise treat as data
+      const dataLines = lines[0].toLowerCase().includes("problem") ? lines.slice(1) : lines;
+      
+      const statements = dataLines.map(line => ({ text: line.trim() }));
+
+      if (statements.length === 0) {
+        setError("CSV file is empty or invalid.");
+        return;
+      }
+
+      setLoading(true);
+      const { error: insertError } = await supabase
+        .from("problem_statements")
+        .insert(statements);
+
+      if (insertError) {
+        setError("Failed to upload to Supabase. Ensure 'problem_statements' table exists with a 'text' column.");
+        setLoading(false);
+      } else {
+        await loadProblemStatements();
+        setLoading(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const clearProblemStatements = async () => {
+    if (!confirm("Are you sure you want to delete all problem statements?")) return;
+    
+    setLoading(true);
     const { error } = await supabase
-      .from("profiles")
-      .update({ 
-        round2_topic: randomTopic,
-        round2_status: 'assigned'
-      })
-      .eq("id", userId);
+      .from("problem_statements")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // Hack to delete all in Supabase
 
     if (error) {
-      console.error("Error assigning topic:", error);
-      alert("Failed to assign topic. Please ensure the database schema supports round 2 fields.");
+      setError("Failed to clear statements.");
     } else {
-      setUsers(users.map(u => u.id === userId ? { ...u, round2_topic: randomTopic, round2_status: 'assigned' } : u));
+      setProblemStatements([]);
     }
-    setUpdating(null);
+    setLoading(false);
+  };
+
+  const bulkAllocate = async () => {
+    if (problemStatements.length === 0) {
+      alert("Please upload problem statements first.");
+      return;
+    }
+    if (users.length === 0) {
+      alert("No candidates available for allocation.");
+      return;
+    }
+
+    setAllocating(true);
+    
+    // Logic: 
+    // 1. Shuffle PS
+    // 2. Loop through users and assign
+    // 3. Ensure all PS are used if possible
+    
+    const shuffledPS = [...problemStatements].sort(() => Math.random() - 0.5);
+    const userUpdates = [];
+
+    users.forEach((user, index) => {
+      // If users > ps, it will wrap around correctly using modulo
+      // This ensures every PS is assigned at least once if users >= ps
+      // If users < ps, only some PS are used (as per user exception case)
+      const psIndex = index % shuffledPS.length;
+      userUpdates.push({
+        id: user.id,
+        round2_topic: shuffledPS[psIndex].text,
+        round2_status: 'assigned'
+      });
+    });
+
+    // Update profiles one by one (Supabase free tier doesn't support bulk upsert on multiple rows easily without unique constraints)
+    // For production, a RPC or multi-update would be better, but here we'll do it sequentially or in parallel chunks
+    const results = await Promise.all(userUpdates.map(update => 
+      supabase.from("profiles").update({ 
+        round2_topic: update.round2_topic, 
+        round2_status: update.round2_status 
+      }).eq("id", update.id)
+    ));
+
+    const errors = results.filter(r => r.error);
+    if (errors.length > 0) {
+      setError(`Failed to update ${errors.length} profiles.`);
+    } else {
+      alert(`Successfully allocated problem statements to ${users.length} candidates.`);
+      await loadUsers();
+    }
+    
+    setAllocating(false);
+  };
+
+  const exportAllToCSV = () => {
+    const submittedUsers = users.filter(u => u.round2_status === 'submitted');
+    if (submittedUsers.length === 0) {
+      alert("No submissions available to export.");
+      return;
+    }
+
+    const headers = ["Candidate Name", "Email", "Topic", "Research Content", "Status"];
+    const csvRows = [headers.join(",")];
+
+    submittedUsers.forEach(u => {
+      const row = [
+        `"${u.full_name || ''}"`,
+        `"${u.email || ''}"`,
+        `"${u.round2_topic || ''}"`,
+        `"${(u.round2_content || '').replace(/"/g, '""')}"`, // Escape quotes for CSV
+        `"${u.round2_status || ''}"`
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Round2_Bulk_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportIndividualCSV = (user) => {
+    if (!user.round2_content) {
+      alert("This candidate hasn't submitted their research yet.");
+      return;
+    }
+
+    const headers = ["Field", "Value"];
+    const data = [
+      ["Candidate Name", user.full_name],
+      ["Email", user.email],
+      ["Assigned Topic", user.round2_topic],
+      ["Protocol Status", user.round2_status],
+      ["Research Content", user.round2_content]
+    ];
+
+    const csvRows = headers.join(",") + "\n" + 
+      data.map(row => `"${row[0]}","${(row[1] || '').replace(/"/g, '""')}"`).join("\n");
+
+    const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Report_${user.full_name.replace(/\s+/g, '_')}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredUsers = users.filter(u => 
@@ -164,115 +278,201 @@ export default function Round2SelectionPage() {
 
   return (
     <div className="p-8 md:p-14 space-y-12">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
         <div>
           <h1 className="text-4xl font-black text-[#0F172A] tracking-tighter uppercase leading-none">
-            Round 2 <span className="text-[#2563EB]">Selection</span>
+            Round 2 <span className="text-[#2563EB]">Protocol</span>
           </h1>
           <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.4em] mt-2">
-            Protocol Phase II: Secondary Research Assignment
+            INTELLIGENT ALLOCATION SYSTEM
           </p>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="bg-white border border-[#E2E8F0] px-4 py-2 rounded-2xl flex items-center gap-3 flex-1 md:flex-none md:min-w-[300px] shadow-sm">
+        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+          <div className="bg-white border border-[#E2E8F0] px-4 py-2 rounded-2xl flex items-center gap-3 flex-1 md:flex-none md:min-w-[250px] shadow-sm">
             <Search size={16} className="text-[#94A3B8]" />
             <input 
               type="text" 
-              placeholder="Filter nodes..." 
+              placeholder="Filter candidates..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-transparent border-none outline-none text-xs font-bold w-full placeholder:text-[#CBD5E1]"
             />
           </div>
+          
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+          />
+          
           <button 
-            onClick={loadUsers}
-            className="p-3 bg-white border border-[#E2E8F0] rounded-2xl text-[#64748B] hover:text-[#2563EB] transition-all hover:shadow-md"
+            onClick={() => fileInputRef.current.click()}
+            className="flex items-center gap-2 bg-white border border-[#E2E8F0] text-[#0F172A] px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#F8FAFC] transition-all"
           >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+            <Upload size={14} />
+            <span>Import CSV</span>
+          </button>
+
+          <button 
+            onClick={bulkAllocate}
+            disabled={allocating || problemStatements.length === 0}
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+          >
+            {allocating ? <Loader2 size={14} className="animate-spin" /> : <Shuffle size={14} />}
+            <span>Run Allocation</span>
+          </button>
+
+          <button 
+            onClick={exportAllToCSV}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+          >
+            <FileSpreadsheet size={14} />
+            <span>Bulk Export</span>
           </button>
         </div>
       </header>
+
+      {/* PS Status Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-[#E2E8F0] p-6 rounded-[28px] shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 bg-blue-50 text-[#2563EB] rounded-2xl flex items-center justify-center">
+                <Database size={20} />
+             </div>
+             <div>
+                <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest">Problem Library</p>
+                <h3 className="text-xl font-black text-[#0F172A]">{problemStatements.length} Statements</h3>
+             </div>
+          </div>
+          {problemStatements.length > 0 && (
+            <button onClick={clearProblemStatements} className="text-[#EF4444] hover:bg-rose-50 p-2 rounded-lg transition-colors">
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+
+        <div className="bg-white border border-[#E2E8F0] p-6 rounded-[28px] shadow-sm flex items-center gap-4">
+           <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+              <Users size={20} />
+           </div>
+           <div>
+              <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest">Candidate Registry</p>
+              <h3 className="text-xl font-black text-[#0F172A]">{users.length} Active Nodes</h3>
+           </div>
+        </div>
+
+        <div className="bg-white border border-[#E2E8F0] p-6 rounded-[28px] shadow-sm flex items-center gap-4">
+           <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+              <Trophy size={20} />
+           </div>
+           <div>
+              <p className="text-[9px] font-black text-[#94A3B8] uppercase tracking-widest">Status</p>
+              <h3 className="text-xl font-black text-[#0F172A]">
+                {users.filter(u => u.round2_topic).length} / {users.length} Assigned
+              </h3>
+           </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600"
+          >
+            <AlertCircle size={18} />
+            <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-rose-400 hover:text-rose-600">×</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 gap-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-20">
             <Loader2 size={40} className="animate-spin text-[#2563EB]" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Synchronizing Registry</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Synchronizing Nodes</p>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="bg-white border border-dashed border-[#E2E8F0] rounded-[32px] p-20 text-center">
             <Users size={48} className="mx-auto text-[#CBD5E1] mb-4" />
-            <p className="text-sm font-bold text-[#64748B]">No eligible candidates found in the registry.</p>
+            <p className="text-sm font-bold text-[#64748B]">No eligible candidates detected.</p>
           </div>
         ) : (
           <div className="bg-white border border-[#E2E8F0] rounded-[32px] overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                  <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Candidate</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest text-center">Round 1 Status</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Assigned Topic</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F1F5F9]">
-                {filteredUsers.map((user) => (
-                  <motion.tr 
-                    key={user.id} 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-[#F8FAFC] transition-colors group"
-                  >
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg shadow-slate-200">
-                          {user.full_name?.[0] || "U"}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
+                    <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Candidate Identity</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Assigned Problem Statement</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest text-center">Protocol Status</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest text-right">Data Export</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F1F5F9]">
+                  {filteredUsers.map((user) => (
+                    <motion.tr 
+                      key={user.id} 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-[#F8FAFC] transition-colors group"
+                    >
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center text-white font-black text-xs">
+                            {user.full_name?.[0] || "U"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-[#0F172A] leading-tight">{user.full_name}</p>
+                            <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mt-1">{user.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-[#0F172A] leading-tight">{user.full_name}</p>
-                          <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mt-1">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-center">
-                      <span className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                        QUALIFIED
-                      </span>
-                    </td>
-                    <td className="px-8 py-6">
-                      {user.round2_topic ? (
-                        <div className="flex items-center gap-3 text-blue-600">
-                          <BookOpen size={14} />
-                          <span className="text-xs font-black uppercase tracking-tight">{user.round2_topic}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] font-bold text-[#CBD5E1] uppercase tracking-widest">UNASSIGNED</span>
-                      )}
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <button 
-                        onClick={() => assignTopic(user.id)}
-                        disabled={updating === user.id}
-                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 ${
-                          user.round2_topic 
-                          ? "bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#2563EB] hover:border-[#2563EB]/30" 
-                          : "bg-[#2563EB] text-white hover:bg-blue-600 shadow-blue-100"
-                        }`}
-                      >
-                        {updating === user.id ? (
-                          <Loader2 size={14} className="animate-spin mx-auto" />
-                        ) : user.round2_topic ? (
-                          "Reassign Topic"
+                      </td>
+                      <td className="px-8 py-6">
+                        {user.round2_topic ? (
+                          <div className="flex items-start gap-3 text-[#2563EB] max-w-md">
+                            <BookOpen size={14} className="mt-1 flex-shrink-0" />
+                            <span className="text-xs font-bold leading-relaxed">{user.round2_topic}</span>
+                          </div>
                         ) : (
-                          "Assign Round 2"
+                          <span className="text-[10px] font-bold text-[#CBD5E1] uppercase tracking-widest italic">Pending Allocation</span>
                         )}
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                          user.round2_status === 'submitted' 
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                          : user.round2_status === 'assigned'
+                          ? "bg-blue-50 text-blue-600 border-blue-100"
+                          : "bg-gray-50 text-gray-400 border-gray-100"
+                        }`}>
+                          {user.round2_status || "PENDING"}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        {user.round2_status === 'submitted' ? (
+                          <button 
+                            onClick={() => exportIndividualCSV(user)}
+                            className="p-2 bg-white border border-[#E2E8F0] rounded-lg text-[#64748B] hover:text-emerald-600 hover:border-emerald-100 transition-all shadow-sm active:scale-95 flex items-center gap-2 ml-auto"
+                          >
+                            <Download size={14} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">CSV</span>
+                          </button>
+                        ) : (
+                          <span className="text-[8px] font-black text-[#CBD5E1] uppercase tracking-widest">No Data</span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -154,3 +154,12 @@
   @apply bg-blue-700;
   box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
 }
+
+.no-scroll {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  position: fixed !important;
+}
+
