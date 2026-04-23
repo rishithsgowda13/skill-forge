@@ -174,9 +174,12 @@ export default function CandidatePlayPage() {
 
     if (isCorrect) {
       const timeLimit = currentQuestion.time_limit || 15;
-      const basePoints = timeLimit * 10;
-      const penalty = Math.floor(elapsed);
-      const pointsEarned = Math.max(10, basePoints - (penalty * 10));
+      const maxPoints = 1000;
+      const minPoints = 500;
+      // Linear decay: from 1000 at 0s to 500 at timeLimit
+      let pointsEarned = Math.round(maxPoints - ((maxPoints - minPoints) * (elapsed / timeLimit)));
+      // Clamp between minPoints and maxPoints
+      pointsEarned = Math.max(minPoints, Math.min(maxPoints, pointsEarned));
       
       setScore(prev => prev + pointsEarned);
 

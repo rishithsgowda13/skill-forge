@@ -266,6 +266,10 @@ export default function AdminHostPage() {
     await updateQuizStatus('showing-results');
   };
 
+  const showLeaderboardScreen = async () => {
+    await updateQuizStatus('showing-leaderboard');
+  };
+
   const handleTimerEnd = async () => {
     await showResults();
     if (quiz?.id) fetchLeaderboard(quiz.id);
@@ -458,6 +462,40 @@ export default function AdminHostPage() {
                    </motion.div>
                 )}
 
+                {status === 'showing-leaderboard' && (
+                   <motion.div
+                     key="leaderboard-screen"
+                     initial={{ opacity: 0, scale: 0.9 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     className="space-y-12 text-center w-full max-w-2xl mx-auto"
+                   >
+                      <div className="space-y-4 mb-8">
+                         <h1 className="text-5xl font-black uppercase tracking-tighter text-amber-400">Current Matrix Ranking</h1>
+                         <p className="text-xs font-black text-white/40 uppercase tracking-[0.4em]">Top Nodes Identified</p>
+                      </div>
+
+                      <div className="space-y-4 bg-white/5 border border-white/10 p-8 rounded-[40px] shadow-2xl backdrop-blur-md">
+                         {leaderboard.slice(0, 5).map((player, index) => (
+                           <div key={player.id} className="flex items-center justify-between p-4 bg-white/5 rounded-[24px] border border-white/5">
+                              <div className="flex items-center gap-4">
+                                <span className={`text-2xl font-black ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-orange-400' : 'text-white/50'}`}>#{index + 1}</span>
+                                <span className="text-xl font-bold uppercase">{player.full_name}</span>
+                              </div>
+                              <span className="text-2xl font-black tabular-nums text-primary-blue">{player.total_score} <span className="text-[10px] opacity-50">PTS</span></span>
+                           </div>
+                         ))}
+                      </div>
+
+                      <button 
+                        onClick={nextQuestion}
+                        className="bg-white text-[#020617] px-20 py-8 rounded-[36px] text-lg font-black uppercase tracking-[0.4em] transition-all flex items-center gap-6 mx-auto hover:bg-primary-blue hover:text-white group shadow-2xl mt-8"
+                      >
+                         <span>Next Protocol</span>
+                         <ArrowRight size={32} className="group-hover:translate-x-2 transition-transform" />
+                      </button>
+                   </motion.div>
+                )}
+
                 {status === 'showing-results' && currentQuestion && (
                    <motion.div
                      key="results"
@@ -476,11 +514,11 @@ export default function AdminHostPage() {
                       </div>
 
                       <button 
-                        onClick={nextQuestion}
+                        onClick={showLeaderboardScreen}
                         className="bg-white text-[#020617] px-20 py-8 rounded-[36px] text-lg font-black uppercase tracking-[0.4em] transition-all flex items-center gap-6 mx-auto hover:bg-primary-blue hover:text-white group shadow-2xl"
                       >
-                         <span>Next Protocol</span>
-                         <ArrowRight size={32} className="group-hover:translate-x-2 transition-transform" />
+                         <span>View Leaderboard</span>
+                         <BarChart2 size={32} className="group-hover:scale-110 transition-transform" />
                       </button>
                    </motion.div>
                 )}
